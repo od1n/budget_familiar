@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "154604030033",
+    "project_id": "my-project-1485369738831",
+    "storage_bucket": "my-project-1485369738831.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:154604030033:android:917af5ffd167d2fa1dd070",
+        "android_client_info": {
+          "package_name": "com.budgetfamiliar.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "154604030033-5etrmajlu798j164bfd3l9uf1at72lj8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8KyiENDaKaiIx6sUVNKBvhUQ3vJLs2gs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "154604030033-5etrmajlu798j164bfd3l9uf1at72lj8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

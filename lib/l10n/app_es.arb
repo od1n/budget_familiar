@@ -1,0 +1,441 @@
+{
+  "@@locale": "es",
+
+  "@@x-context": "NAV",
+  "navHome": "Inicio",
+  "navTransactions": "Movimientos",
+  "navBudgets": "Presupuesto",
+  "navGoals": "Metas",
+  "navAccounts": "Cuentas",
+  "navInvestments": "Inversiones",
+  "navEnvelopes": "Sobres",
+  "navFamily": "Familia",
+  "navSettings": "Ajustes",
+  "navRegister": "Registrar",
+
+  "@@x-context-common": "COMMON",
+  "appTitle": "Budget Familiar",
+  "cancelButton": "Cancelar",
+  "saveButton": "Guardar",
+  "deleteButton": "Eliminar",
+  "createButton": "Crear",
+  "editButton": "Editar",
+  "okButton": "OK",
+  "retryButton": "Reintentar",
+  "backButton": "Atrás",
+  "nextButton": "Siguiente",
+  "closeButton": "Cerrar",
+  "searchHint": "Buscar...",
+  "loadingText": "Cargando...",
+  "errorGeneric": "Ocurrió un error. Intenta de nuevo.",
+  "incomeLabel": "Ingresos",
+  "expenseLabel": "Gastos",
+  "requiredField": "Requerido",
+  "invalidNumber": "Número inválido",
+
+  "@@x-context-auth": "AUTH",
+  "authTagline": "Controla tus finanzas en familia.",
+  "emailLabel": "Correo electrónico",
+  "emailValidationEmpty": "Ingresa tu correo",
+  "emailValidationInvalid": "Correo inválido",
+  "passwordLabel": "Contraseña",
+  "passwordValidationEmpty": "Ingresa tu contraseña",
+  "passwordValidationMin": "Mínimo {min} caracteres",
+  "@passwordValidationMin": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "forgotPassword": "¿Olvidaste tu contraseña?",
+  "signInButton": "Iniciar sesión",
+  "orContinueWith": "o continúa con",
+  "continueWithGoogle": "Continuar con Google",
+  "noAccountPrompt": "¿No tienes cuenta?",
+  "registerLink": "Regístrate",
+  "recoverPasswordTitle": "Recuperar contraseña",
+  "sendButton": "Enviar",
+  "passwordResetSent": "Revisa tu correo para recuperar la cuenta.",
+  "createAccountTitle": "Crear cuenta",
+  "welcomeTitle": "Bienvenido",
+  "createAccountSubtitle": "Crea tu cuenta para empezar.",
+  "fullNameLabel": "Nombre completo",
+  "nameValidationEmpty": "Ingresa tu nombre",
+  "createAccountButton": "Crear cuenta",
+  "hasAccountPrompt": "¿Ya tienes cuenta?",
+  "signInLink": "Inicia sesión",
+  "confirmEmailTitle": "Confirma tu correo",
+  "confirmEmailBody": "Te enviamos un enlace de confirmación a {email}. Revisa tu bandeja de entrada.",
+  "@confirmEmailBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "understoodButton": "Entendido",
+  "errorAlreadyRegistered": "Este correo ya tiene una cuenta. Inicia sesión.",
+  "errorWeakPassword": "Contraseña muy débil. Usa al menos 8 caracteres.",
+  "errorInvalidEmail": "El correo ingresado no es válido.",
+  "errorCreateAccount": "Error al crear la cuenta. Intenta de nuevo.",
+
+  "@@x-context-onboarding": "ONBOARDING",
+  "onboardingTagline": "Controla tus finanzas en familia.\nEn USD y VES, con tasas en tiempo real.",
+  "onboardingSync": "Sincronización familiar en tiempo real",
+  "onboardingBudgets": "Presupuestos, metas y análisis IA",
+  "onboardingRates": "Tasas BCV y paralela actualizadas",
+  "onboardingCreateAccount": "Crear cuenta",
+  "onboardingHasAccount": "Ya tengo cuenta",
+
+  "@@x-context-dashboard": "DASHBOARD",
+  "balanceOfMonth": "Balance del mes",
+  "mixedCurrencyWarning": "Algunas transacciones no tienen equivalente USD; el balance puede no reflejar la moneda real.",
+  "trendTitle": "Tendencia — últimos 6 meses",
+  "expenseDistTitle": "Distribución de gastos",
+  "aiTitle": "Recomendaciones IA",
+  "recentTitle": "Últimos movimientos",
+  "trendNoData": "Sin datos para mostrar la tendencia.",
+  "noExpensesMonth": "Sin gastos registrados este mes.",
+  "noRecentTransactions": "Aún no hay movimientos registrados.",
+  "myAccounts": "Mis cuentas",
+  "viewAll": "Ver todas",
+  "aiPremiumOnly": "Análisis IA disponible en el plan Premium.",
+  "viewPlans": "Ver planes",
+  "aiAnalyzing": "Analizando tus finanzas…",
+  "aiCompleteTitle": "Análisis financiero completo",
+  "generateAnalysis": "Generar análisis",
+  "aiCachedFooter": "Análisis en caché · válido 7 días",
+  "aiGeneratedNow": "Análisis generado ahora",
+  "recurringAlertCount": "{count, plural, =1{1 transacción recurrente pendiente de registrar} other{{count} transacciones recurrentes pendientes de registrar}}",
+  "@recurringAlertCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "viewButton": "Ver",
+
+  "@@x-context-transactions": "TRANSACTIONS",
+  "recurringTooltip": "Recurrentes",
+  "searchTooltip": "Buscar",
+  "exportTooltip": "Exportar",
+  "exportPdf": "Exportar PDF",
+  "exportCsv": "Exportar CSV",
+  "noTransactionsExport": "No hay movimientos en este mes para exportar.",
+  "noTransactions": "Sin movimientos registrados.",
+  "searchTransactionsHint": "Buscar por descripción o categoría…",
+  "filterAll": "Todos",
+  "filterIncome": "Ingresos",
+  "filterExpense": "Gastos",
+  "filterTransfer": "Transferencias",
+  "filterByCategory": "Filtrar por categoría",
+  "categoryLabel": "Categoría",
+  "deleteTransactionTitle": "Eliminar movimiento",
+  "deleteTransactionConfirm": "¿Confirmas que deseas eliminar este movimiento?",
+  "newTransactionTitle": "Nuevo movimiento",
+  "editTransactionTitle": "Editar movimiento",
+  "scanReceiptButton": "Cargar recibo",
+  "expenseTypeButton": "Gasto",
+  "incomeTypeButton": "Ingreso",
+  "amountLabel": "Monto",
+  "amountValidationEmpty": "Ingresa un monto",
+  "amountValidationInvalid": "Monto inválido",
+  "amountValidationPositive": "Debe ser mayor a 0",
+  "currencyInline": "Moneda:",
+  "descriptionOptional": "Descripción (opcional)",
+  "descriptionHint": "Ej: Mercado, sueldo, luz...",
+  "accountLabel": "Cuenta",
+  "noAccountOption": "Sin cuenta",
+  "registerButton": "Registrar",
+  "transferTitle": "Transferencia interna",
+  "transferFrom": "De",
+  "transferTo": "Para",
+  "transferSuccess": "Transferencia registrada hacia {name}.",
+  "@transferSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rateLoading": "Obteniendo tasas…",
+  "rateUnavailable": "Tasa no disponible",
+  "rateParallel": "Paralela",
+
+  "@@x-context-budgets": "BUDGETS",
+  "budgetPageTitle": "Presupuesto",
+  "budgetMonthSummary": "Resumen del mes",
+  "percentUsed": "{pct}% usado",
+  "@percentUsed": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "spentLabel": "Gastado",
+  "budgetedLabel": "Presupuestado",
+  "exceededLabel": "Excedido",
+  "availableLabel": "Disponible",
+  "budgetInfo": "Define el límite mensual para cada categoría. La barra muestra lo gastado este mes.",
+  "budgetDialogTitle": "Presupuesto — {name}",
+  "@budgetDialogTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetLimitLabel": "Límite mensual (USD)",
+  "budgetLimitHelper": "Ingresa 0 para quitar el límite",
+  "noLimitDefined": "Sin límite definido",
+
+  "@@x-context-savings": "SAVINGS",
+  "savingsPageTitle": "Metas de ahorro",
+  "newGoalButton": "Nueva meta",
+  "addSavingsTitle": "Agregar ahorro — {name}",
+  "@addSavingsTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addSavingsAmountLabel": "Monto a agregar ({currency})",
+  "@addSavingsAmountLabel": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "addButton": "Agregar",
+  "newGoalDialogTitle": "Nueva meta de ahorro",
+  "goalNameLabel": "Nombre de la meta",
+  "goalNameHint": "Ej: Vacaciones, auto, fondo de emergencia…",
+  "targetAmountLabel": "Monto objetivo",
+  "goalNameValidation": "Ingresa un nombre",
+  "goalAmountValidation": "Ingresa un monto válido",
+  "editGoalTitle": "Editar meta",
+  "targetDateLabel": "Fecha objetivo (opcional)",
+  "noDateSet": "Sin fecha",
+  "removeDateButton": "Quitar fecha",
+  "adjustForInflation": "Ajustar por inflación",
+  "inflationSubtitle": "Proyecta cuánto costará la meta en el futuro",
+  "inflationRateLabel": "Tasa mensual estimada (%)",
+  "inflationRateHelper": "Ej: 4.5 = 4.5 % mensual. Requiere fecha objetivo.",
+  "adjustedGoalLabel": "Meta ajustada: {currency} {amount}",
+  "@adjustedGoalLabel": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "percentCompleted": "{pct}% completado",
+  "@percentCompleted": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "savingsEmptyTitle": "Aún no tienes metas de ahorro.",
+  "savingsEmptySubtitle": "Crea una meta para empezar a ahorrar.",
+
+  "@@x-context-investments": "INVESTMENTS",
+  "investmentsPageTitle": "Inversiones",
+  "newInvestmentTooltip": "Nueva inversión",
+  "investedLabel": "Invertido",
+  "currentValueLabel": "Valor actual",
+  "pnlLabel": "P&L",
+  "archiveInvestmentTitle": "Archivar inversión",
+  "archiveInvestmentConfirm": "¿Archivar \"{name}\"? Podrás verla en el historial.",
+  "@archiveInvestmentConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveButton": "Archivar",
+  "investmentsEmptyTitle": "Sin inversiones registradas",
+  "investmentsEmptySubtitle": "Registra depósitos, criptos, acciones y más para ver tu portafolio.",
+  "addInvestmentButton": "Agregar inversión",
+  "editInvestmentTitle": "Editar inversión",
+  "newInvestmentTitle": "Nueva inversión",
+  "investmentNameLabel": "Nombre",
+  "investmentTypeLabel": "Tipo",
+  "initialAmountLabel": "Monto inicial",
+  "currentValueFormLabel": "Valor actual",
+  "currentValueHelper": "Dejar vacío si no cambió",
+  "institutionLabel": "Institución / Exchange",
+  "startDateLabel": "Fecha inicio",
+  "maturityDateLabel": "Vencimiento",
+  "notesLabel": "Notas",
+  "saveChangesButton": "Guardar cambios",
+  "investmentTypeFixedTerm": "Depósito a plazo",
+  "investmentTypeFund": "Fondo de inversión",
+  "investmentTypeStock": "Acciones",
+  "investmentTypeCrypto": "Criptomonedas",
+  "investmentTypeRealEstate": "Inmuebles",
+  "investmentTypeOther": "Otro",
+
+  "@@x-context-envelopes": "ENVELOPES",
+  "envelopesPageTitle": "Sobres virtuales",
+  "newEnvelopeTooltip": "Nuevo sobre",
+  "registerSpentTitle": "Registrar gasto — {name}",
+  "@registerSpentTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "registerSpentAmountLabel": "Monto gastado ({currency})",
+  "@registerSpentAmountLabel": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "registerSpentButton": "Registrar",
+  "envelopeAvailable": "Disponible: {currency} {amount}",
+  "@envelopeAvailable": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "spendButton": "Gastar",
+  "editEnvelopeTitle": "Editar sobre",
+  "newEnvelopeTitle": "Nuevo sobre virtual",
+  "envelopeNameLabel": "Nombre del sobre",
+  "allocatedAmountLabel": "Monto asignado",
+  "periodStartLabel": "Inicio",
+  "periodEndLabel": "Fin",
+  "envelopesEmptyTitle": "Sin sobres activos",
+  "envelopesEmptySubtitle": "Asigna dinero a categorías específicas y controla cuánto llevas gastado.",
+  "createEnvelopeButton": "Crear sobre",
+
+  "@@x-context-family": "FAMILY",
+  "familyPageTitle": "Familia",
+  "familyGroupSection": "Grupo familiar",
+  "customCategoriesSection": "Categorías personalizadas",
+  "individualMode": "Modo individual",
+  "individualModeDesc": "Crea un grupo familiar para compartir el presupuesto con tu pareja o familia.",
+  "createFamilyGroup": "Crear grupo familiar",
+  "joinWithCode": "Unirse con código de invitación",
+  "createGroupTitle": "Crear grupo familiar",
+  "groupNameLabel": "Nombre del grupo",
+  "groupNameHint": "Ej: Familia García, Mi hogar…",
+  "groupCreated": "Grupo \"{name}\" creado.",
+  "@groupCreated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "joinGroupTitle": "Unirse a grupo",
+  "inviteCodeLabel": "Código de invitación",
+  "inviteCodeHint": "Ej: AB3KP9MZ",
+  "joinButton": "Unirse",
+  "joinedGroup": "Te uniste a \"{name}\".",
+  "@joinedGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteCodeSection": "Código de invitación",
+  "codeCopied": "Código copiado al portapapeles.",
+  "shareInviteTooltip": "Compartir invitación",
+  "membersLabel": "Miembros",
+  "groupFull": "Grupo lleno. Actualiza a un plan superior para agregar más miembros.",
+  "transferAdminButton": "Transferir administración",
+  "leaveGroupButton": "Salir del grupo",
+  "transferAdminTitle": "Transferir administración",
+  "transferAdminPrompt": "Selecciona el nuevo administrador del grupo:",
+  "adminTransferred": "Administración transferida a {name}.",
+  "@adminTransferred": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveGroupTitle": "Salir del grupo",
+  "leftGroup": "Has salido del grupo.",
+  "adminBadge": "Admin",
+  "customCategoriesDesc": "Crea categorías propias para clasificar tus movimientos según las necesidades de tu hogar.",
+  "noCustomCategories": "No tienes categorías personalizadas todavía.",
+  "newCategoryButton": "Nueva categoría",
+  "deleteCategoryTitle": "Eliminar categoría",
+  "signOutLabel": "Cerrar sesión",
+  "signOutConfirm": "¿Confirmas que deseas cerrar la sesión?",
+  "editNameTitle": "Editar nombre",
+  "nameUpdated": "Nombre actualizado.",
+
+  "@@x-context-settings": "SETTINGS",
+  "settingsPageTitle": "Configuración",
+  "ocrSectionTitle": "OCR de recibos",
+  "themeTitle": "Apariencia",
+  "themeLight": "Claro",
+  "themeDark": "Oscuro",
+  "themeSystem": "Sistema",
+  "planTitle": "Plan y suscripción",
+  "planActive": "Activo",
+  "planUpgradePrompt": "Actualiza para desbloquear más funciones",
+  "securityTitle": "Seguridad y datos",
+  "biometricTitle": "Protección biométrica",
+  "biometricSubtitle": "Solicitar huella o PIN para exportar datos y acciones sensibles",
+  "backupTitle": "Respaldo de datos",
+  "backupDesc": "Exporta todos tus datos como archivo JSON para respaldo o migración a otro dispositivo.",
+  "exportButton": "Exportar",
+  "importButton": "Importar",
+  "aboutTitle": "Acerca de",
+  "versionLabel": "Versión",
+  "databaseLabel": "Base de datos",
+  "realtimeSyncLabel": "Sync en tiempo real",
+  "deleteAccountWarning": "Esta acción es permanente e irreversible. Todos tus datos (transacciones, presupuestos, metas) serán eliminados de nuestros servidores.",
+  "deleteAccountButton": "Eliminar mi cuenta",
+  "deleteAccountConfirmTitle": "¿Eliminar cuenta?",
+  "deleteAccountTypePrompt": "Escribe ELIMINAR para confirmar:",
+  "deleteAccountTypeError": "Escribe exactamente: ELIMINAR",
+  "deleteAccountFinalButton": "Eliminar cuenta",
+  "saveOcrConfig": "Guardar configuración OCR",
+  "ocrConfigSaved": "Configuración OCR guardada.",
+
+  "@@x-context-paywall": "PAYWALL",
+  "plansPageTitle": "Planes",
+  "restoreButton": "Restaurar",
+  "planRestored": "¡Plan {plan} restaurado!",
+  "@planRestored": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "noSubscriptionFound": "No se encontró suscripción activa para esta cuenta.",
+  "choosePlanTitle": "Elige tu plan",
+  "choosePlanSubtitle": "Control financiero completo para ti y tu familia.",
+  "checkoutNote": "Al tocar el botón se abrirá el navegador para completar el pago de forma segura. Una vez confirmado, usa \"Restaurar\" para activar el plan en la app.",
+  "planFamiliarTitle": "Familiar",
+  "planFamiliarSubtitle": "Familia + exportación",
+  "planPremiumTitle": "Premium",
+  "planPremiumSubtitle": "Todo + IA financiera",
+  "comingSoonBadge": "Próximamente"
+}

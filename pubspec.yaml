@@ -1,0 +1,162 @@
+name: budget_familiar
+description: Gestión de gastos y presupuesto familiar multiplataforma
+publish_to: 'none'
+version: 1.0.0+9
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # === ESTADO ===
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # === BASE DE DATOS LOCAL ===
+  drift: ^2.21.0
+  sqlite3_flutter_libs: ^0.5.24
+  # SQLCipher para Android/iOS: agregar sqlcipher_flutter_libs en
+  # android/build.gradle o como dependency_overrides cuando se compile móvil.
+  # No se incluye aquí porque intenta compilar OpenSSL en Windows.
+  path_provider: ^2.1.3
+  path: ^1.9.0
+
+  # === SUPABASE ===
+  supabase_flutter: ^2.5.0
+
+  # === NAVEGACIÓN ===
+  go_router: ^14.1.4
+
+  # === GRÁFICOS ===
+  fl_chart: ^0.68.0
+
+  # === RED ===
+  dio: ^5.4.3
+  # connectivity_plus: eliminado temporalmente — su DLL de Windows no se copia
+  # correctamente en debug. Se reincorpora en Fase 2 al implementar sync offline.
+
+  # === NOTIFICACIONES ===
+  # flutter_local_notifications se usa para alertas de presupuesto locales (Fase 2).
+  flutter_local_notifications: ^17.2.2
+  # Firebase: push notifications para Android/iOS.
+  # No tienen implementación nativa en Windows/Linux — se usan solo cuando
+  # Platform.isAndroid || Platform.isIOS (ver FcmService).
+  firebase_messaging: ^15.1.0
+  firebase_core: ^3.4.0
+
+  # === UI ===
+  flutter_svg: ^2.0.10
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  gap: ^3.0.1
+  percent_indicator: ^4.2.3
+
+  # === INTERNACIONALIZACIÓN ===
+  # Fijado a ^0.20.2 para coincidir con flutter_localizations del SDK
+  intl: ^0.20.2
+
+  # === IMAGEN Y OCR ===
+  image_picker: ^1.1.2        # Selección de imagen en móvil (galería/cámara)
+  file_selector: ^1.0.3       # Selector de archivo en desktop (evita freeze de image_picker_windows)
+  google_fonts: ^6.2.1        # Fuente Inter sin necesidad de TTF locales
+
+  # === UTILIDADES ===
+  uuid: ^4.4.2
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  equatable: ^2.0.5
+  logger: ^2.4.0
+
+  # === WIDGET ANDROID ===
+  home_widget: ^0.6.0
+
+  # === VENTANA DESKTOP ===
+  window_manager: ^0.4.3   # Posición/tamaño persistente en Windows/macOS/Linux
+
+  # === AUTENTICACIÓN LOCAL ===
+  local_auth: ^2.3.0       # Biometría / PIN del dispositivo
+
+  # === LANZAMIENTO DE URLs ===
+  url_launcher: ^6.3.0     # Abre URLs en el navegador (web checkout)
+
+  # === MONETIZACIÓN / ADS ===
+  google_mobile_ads: ^5.3.0  # AdMob — banners en plan Free (solo Android/iOS)
+
+  # === EXPORTACIÓN / IMPORTACIÓN ===
+  pdf: ^3.11.1             # Generación de reportes PDF
+  share_plus: ^10.0.0      # Compartir archivos en móvil (PDF/CSV)
+  csv: ^6.0.0              # Parser/writer de CSV para importación bancaria
+
+  # === ALMACENAMIENTO LOCAL ===
+  # ffi: necesario para DpapiStorage (acceso a crypt32.dll sin compilar C++/ATL).
+  ffi: ^2.1.3
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.11
+  drift_dev: ^2.21.0
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+  riverpod_generator: ^2.4.0
+  custom_lint: ^0.6.4
+  riverpod_lint: ^2.3.10
+  mocktail: ^1.0.4
+  flutter_lints: ^4.0.0
+  msix: ^3.16.7
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/fonts/Inter/
+    - assets/icons/categories/
+    - assets/images/onboarding/
+
+  # fonts — descomentar cuando se agreguen los archivos .ttf de Inter en assets/fonts/Inter/
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter/Inter-Regular.ttf
+  #         weight: 400
+  #       - asset: assets/fonts/Inter/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Inter/Inter-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Inter/Inter-Bold.ttf
+  #         weight: 700
+
+msix_config:
+  display_name: Budget Familiar
+  publisher_display_name: Jacques Pascher
+  identity_name: com.budgetfamiliar.app
+  msix_version: 1.0.0.0
+  logo_path: windows\runner\resources\app_icon.ico
+  capabilities: internetClient
+  languages: es-VE, es, en, pt
+  store: false
+  # ── Firma comercial ────────────────────────────────────────────────────────
+  # Para eliminar la advertencia de Windows SmartScreen al instalar:
+  #
+  # Opción A — Certificado EV Code Signing (~$300-500/año):
+  #   Proveedores: SSL.com, Sectigo, DigiCert
+  #   certificate_path: certs\code_signing.pfx
+  #   certificate_password: <contraseña>
+  #
+  # Opción B — Microsoft Store (gratis, firma automática):
+  #   store: true
+  #   (quitar certificate_path/password, Microsoft firma el MSIX)
+  #
+  # Opción C — Self-signed (actual, requiere sideload):
+  #   Sin certificate_path → msix genera uno temporal
+  #
+  # Build:
+  #   flutter pub run msix:create --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
+  #
