@@ -12,6 +12,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'app.dart';
 import 'core/services/ad_service.dart';
 import 'core/services/deeplink_service.dart';
+import 'core/services/iap_service.dart';
 import 'core/services/dpapi_storage.dart';
 import 'core/services/local_storage_service.dart';
 import 'core/services/fcm_service.dart';
@@ -91,6 +92,9 @@ Future<void> main() async {
     // Inicializar AdMob (solo Android/iOS).
     final adSvc = AdService();
     await adSvc.initialize();
+
+    // Inicializar compras in-app (Google Play Billing).
+    await IapService.instance.initialize();
 
     // Inicializar servicio de deeplinks (invitaciones familiares).
     final deeplinkSvc = DeeplinkService();

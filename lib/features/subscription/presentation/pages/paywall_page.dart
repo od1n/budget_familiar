@@ -1,30 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/services/exchange_rate_service.dart';
+import '../../../../core/services/iap_service.dart';
 import '../../../../core/services/subscription_service.dart';
 import '../../providers/subscription_provider.dart';
 
-// ── URLs de checkout LemonSqueezy ─────────────────────────────────────────────
-
-/// Plan Familiar — $2.99/mes (variante mensual existente)
-const _kCheckoutFamily =
-    'https://ehpd.lemonsqueezy.com/checkout/buy/de15ef1c-ae27-4d9f-b575-1faf290c11db';
-
-/// Plan Familiar Anual — $19.99/año (variante anual existente, reetiquetada)
-const _kCheckoutFamilyAnnual =
-    'https://ehpd.lemonsqueezy.com/checkout/buy/f101df54-d71f-4466-82f2-d4602fb28147';
-
-/// Plan Premium — $9.99/mes (crear variante en LemonSqueezy cuando se desbloquee VE)
-/// TODO: reemplazar con URL real al crear la variante premium en la tienda EHPD.
-const _kCheckoutPremium = '';
-// 'https://ehpd.lemonsqueezy.com/checkout/buy/PENDING_PREMIUM_VARIANT_UUID';
+bool get _isMobile =>
+    !kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS);
 
 // ── Página del paywall ────────────────────────────────────────────────────────
 
@@ -37,9 +26,16 @@ class PaywallPage extends ConsumerStatefulWidget {
 
 class _PaywallPageState extends ConsumerState<PaywallPage> {
   bool _restoring = false;
+  bool _purchasing = false;
 
   Future<void> _restore() async {
     setState(() => _restoring = true);
+
+    // En móvil, restaurar compras de Google Play primero.
+    if (_isMobile) {
+      await IapService.instance.restorePurchases();
+    }
+
     await ref.read(subscriptionProvider.notifier).refresh();
     setState(() => _restoring = false);
     if (!mounted) return;
@@ -59,31 +55,56 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
     }
   }
 
-  Future<void> _openCheckout(String baseUrl) async {
-    if (baseUrl.isEmpty) {
+  Future<void> _buyProduct(String productId) async {
+    if (!_isMobile) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Este plan estará disponible muy pronto. '
-            'Por ahora puedes adquirir el plan Familiar.',
+            'Las suscripciones se gestionan desde la app móvil (Android). '
+            'Suscríbete desde tu teléfono y luego usa "Restaurar" aquí.',
           ),
+          duration: Duration(seconds: 5),
         ),
       );
       return;
     }
 
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    final urlWithUser = userId != null
-        ? '$baseUrl?checkout[custom][user_id]=$userId'
-        : baseUrl;
-
-    final uri = Uri.parse(urlWithUser);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (!mounted) return;
+    final product = IapService.instance.findProduct(productId);
+    if (product == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir el navegador.')),
+        const SnackBar(
+          content: Text('Producto no disponible. Intenta más tarde.'),
+        ),
       );
+      return;
     }
+
+    setState(() => _purchasing = true);
+
+    // Configurar callbacks antes de comprar.
+    IapService.instance.onPurchaseSuccess = (_) async {
+      await ref.read(subscriptionProvider.notifier).refresh();
+      if (mounted) {
+        setState(() => _purchasing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(S.of(context).planRestored(
+                ref.read(subscriptionProvider).planLabel)),
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    };
+    IapService.instance.onPurchaseError = (error) {
+      if (mounted) {
+        setState(() => _purchasing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      }
+    };
+
+    await IapService.instance.buy(product);
   }
 
   @override
@@ -137,8 +158,9 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
                 annualPrice: '\$19.99 / año (ahorra 44%)',
                 annualPriceVes: _toVes(19.99, parallelRate),
                 color: AppColors.primary,
-                onTapMonthly: () => _openCheckout(_kCheckoutFamily),
-                onTapAnnual: () => _openCheckout(_kCheckoutFamilyAnnual),
+                purchasing: _purchasing,
+                onTapMonthly: () => _buyProduct(kFamilyMonthlyId),
+                onTapAnnual: () => _buyProduct(kFamilyAnnualId),
               ),
               const SizedBox(height: AppSpacing.md),
               _PlanCard(
@@ -150,9 +172,39 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
                 annualPriceVes: null,
                 color: AppColors.savings,
                 badge: S.of(context).comingSoonBadge,
-                onTapMonthly: () => _openCheckout(_kCheckoutPremium),
+                onTapMonthly: () {},
                 onTapAnnual: null,
               ),
+              // En desktop, indicar que debe suscribirse desde móvil.
+              if (!_isMobile) ...[
+                const SizedBox(height: AppSpacing.md),
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.phone_android,
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'Suscríbete desde la app en tu teléfono Android. '
+                          'Luego usa "Restaurar" aquí para activar el plan.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.primary,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSpacing.sm),
               if (parallelRate != null)
                 Text(
@@ -492,6 +544,7 @@ class _PlanCard extends StatelessWidget {
     required this.onTapMonthly,
     required this.onTapAnnual,
     this.badge,
+    this.purchasing = false,
   });
 
   final String title;
@@ -501,6 +554,7 @@ class _PlanCard extends StatelessWidget {
   final String? annualPrice;
   final String? annualPriceVes;
   final Color color;
+  final bool purchasing;
   final VoidCallback onTapMonthly;
   final VoidCallback? onTapAnnual;
   final String? badge;
@@ -574,7 +628,7 @@ class _PlanCard extends StatelessWidget {
             child: Column(
               children: [
                 FilledButton(
-                  onPressed: onTapMonthly,
+                  onPressed: purchasing ? null : onTapMonthly,
                   style: FilledButton.styleFrom(
                     backgroundColor: color,
                     minimumSize: const Size(double.infinity, 44),

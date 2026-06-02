@@ -1,7 +1,7 @@
 name: budget_familiar
 description: Gestión de gastos y presupuesto familiar multiplataforma
 publish_to: 'none'
-version: 1.0.0+9
+version: 1.0.0+10
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -81,6 +81,9 @@ dependencies:
   # === AUTENTICACIÓN LOCAL ===
   local_auth: ^2.3.0       # Biometría / PIN del dispositivo
 
+  # === COMPRAS IN-APP ===
+  in_app_purchase: ^3.2.0   # Google Play Billing / App Store
+
   # === LANZAMIENTO DE URLs ===
   url_launcher: ^6.3.0     # Abre URLs en el navegador (web checkout)
 
@@ -99,6 +102,8 @@ dependencies:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   build_runner: ^2.4.11
   drift_dev: ^2.21.0

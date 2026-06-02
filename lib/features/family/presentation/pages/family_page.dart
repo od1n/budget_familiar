@@ -496,23 +496,30 @@ class _ActiveGroupCard extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  IconButton(
-                    onPressed: () {
-                      final link = buildInviteLink(group.inviteCode);
-                      // ignore: deprecated_member_use
-                      Share.share(
-                        'Únete a mi grupo familiar "${group.name}" '
-                        'en Budget Familiar.\n\n'
-                        'Código: ${group.inviteCode}\n'
-                        'O abre este enlace: $link',
-                      );
-                    },
-                    icon: const Icon(Icons.share_outlined, size: 20),
-                    tooltip: S.of(context).shareInviteTooltip,
-                    color: AppColors.primary,
-                  ),
                 ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final link = buildInviteLink(group.inviteCode);
+                    // ignore: deprecated_member_use
+                    Share.share(
+                      'Únete a mi grupo familiar "${group.name}" '
+                      'en Budget Familiar.\n\n'
+                      '1. Descarga la app: https://play.google.com/store/apps/details?id=com.budgetfamiliar.app\n'
+                      '2. Crea tu cuenta e ingresa el código: ${group.inviteCode}\n\n'
+                      'O si ya tienes la app, abre este enlace: $link',
+                    );
+                  },
+                  icon: const Icon(Icons.share_outlined, size: 18),
+                  label: Text(S.of(context).shareInviteTooltip),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
             ],
