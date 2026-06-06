@@ -8,7 +8,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'dart:io';
 
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'app.dart';
 import 'core/services/ad_service.dart';
 import 'core/services/deeplink_service.dart';
@@ -65,6 +68,14 @@ Future<void> main() async {
     // Inicializar Firebase (solo Android/iOS — sin implementación nativa en Windows/Linux).
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       await Firebase.initializeApp();
+
+      // Crashlytics: captura errores de Flutter y errores asíncronos fatales.
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+
       await FcmService.instance.initialize();
     }
 

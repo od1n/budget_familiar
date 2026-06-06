@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../categories/providers/categories_provider.dart';
 import '../../../subscription/presentation/pages/paywall_page.dart';
 import '../../../subscription/providers/subscription_provider.dart';
+import '../../../../core/services/referral_service.dart';
 import '../../providers/family_provider.dart';
 
 class FamilyPage extends ConsumerWidget {
@@ -43,6 +44,15 @@ class FamilyPage extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           _FamilyGroupCard(userId: user?.id ?? ''),
+          const SizedBox(height: AppSpacing.lg),
+
+          // ── Referidos ───────────────────────────────────────────────────────
+          Text(
+            'Referidos',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const _ReferralCard(),
           const SizedBox(height: AppSpacing.lg),
 
           // ── Categorías personalizadas ─────────────────────────────────────
@@ -1035,6 +1045,171 @@ class _CustomCategoryTile extends StatelessWidget {
             visualDensity: VisualDensity.compact,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Tarjeta de referidos ─────────────────────────────────────────────────────
+
+class _ReferralCard extends ConsumerWidget {
+  const _ReferralCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final countAsync = ref.watch(referralCountProvider);
+    final earnedAsync = ref.watch(hasEarnedFreeMonthProvider);
+    final service = ref.read(referralServiceProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.card_giftcard_outlined,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Invita amigos y gana',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Text(
+                        'Invita a ${service.requiredReferrals} personas y obtiene 1 mes gratis',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+
+            // Progress
+            countAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (count) {
+                final progress =
+                    (count / service.requiredReferrals).clamp(0.0, 1.0);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$count / ${service.requiredReferrals} referidos',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        if (count >= service.requiredReferrals)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.income.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Meta alcanzada',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.income,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 8,
+                        backgroundColor:
+                            AppColors.primary.withValues(alpha: 0.08),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          count >= service.requiredReferrals
+                              ? AppColors.income
+                              : AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
+            // Redeem button
+            earnedAsync.maybeWhen(
+              data: (earned) {
+                if (!earned) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        final ok = await service.redeemFreeMonth();
+                        if (ok && context.mounted) {
+                          ref.invalidate(referralCountProvider);
+                          ref.invalidate(hasEarnedFreeMonthProvider);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Mes gratis activado. Gracias por compartir.',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.redeem, size: 18),
+                      label: const Text('Canjear mes gratis'),
+                    ),
+                  ),
+                );
+              },
+              orElse: () => const SizedBox.shrink(),
+            ),
+
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              // TODO: wire actual referral tracking server-side
+              'El conteo se actualizará cuando implementemos el tracking server-side.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textDisabled,
+                    fontStyle: FontStyle.italic,
+                    fontSize: 11,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }

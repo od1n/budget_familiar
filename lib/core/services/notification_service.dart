@@ -3,6 +3,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 import '../../data/local/app_database.dart';
 import '../../features/budgets/providers/budget_alert_provider.dart';
@@ -30,12 +32,15 @@ class NotificationService {
   // IDs fijos — evitan notificaciones duplicadas al reemplazar la anterior
   static const int _idRecurring = 1001;
   static const int _idWeeklySummary = 1002;
+  static const int _idDailySummary = 1003;
 
   // ── Inicialización ────────────────────────────────────────────────────────
 
   Future<void> initialize() async {
     if (_ready) return;
     try {
+      tz.initializeTimeZones();
+
       const android = AndroidInitializationSettings('@mipmap/ic_launcher');
       const darwin = DarwinInitializationSettings(
         requestAlertPermission: true,
@@ -195,6 +200,135 @@ class NotificationService {
       await prefs.setBool(prefKey, true);
     } catch (e) {
       _log.w('NotificationService: fallo en checkAndShowWeeklySummary: $e');
+    }
+  }
+
+  // ── Resumen diario programado (21:00) ──────────────────────────────────────
+
+  /// Programa una notificación diaria a las 21:00 hora local con el resumen
+  /// del día. El [body] lo construye el llamador (ver [buildAndScheduleDailySummary]).
+  ///
+  /// Reemplaza cualquier programación anterior con el mismo ID.
+  Future<void> scheduleDailySummaryNotification({
+    required String body,
+  }) async {
+    if (!_ready) return;
+    try {
+      // Cancelar la programación anterior para evitar duplicados.
+      await _plugin.cancel(_idDailySummary);
+
+      // Calcular el próximo 21:00 local.
+      final now = tz.TZDateTime.now(tz.local);
+      var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, 21);
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
+
+      await _plugin.zonedSchedule(
+        _idDailySummary,
+        'Resumen del día',
+        body,
+        scheduled,
+        _buildDetails(
+          channelId: 'daily_summary',
+          channelName: 'Resumen diario',
+          channelDescription:
+              'Resumen de gastos e ingresos del día, programado a las 9 PM.',
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time, // repite diariamente
+      );
+      _log.i('NotificationService: resumen diario programado para $scheduled');
+    } catch (e) {
+      _log.w('NotificationService: fallo en scheduleDailySummaryNotification: $e');
+    }
+  }
+
+  /// Consulta las transacciones del día y los presupuestos, construye un
+  /// resumen legible y programa la notificación diaria de las 21:00.
+  ///
+  /// Ejemplo de cuerpo: "Hoy: \$15.00 en gastos, \$0.00 en ingresos. Alimentación: 75% usado."
+  Future<void> buildAndScheduleDailySummary({
+    required String groupId,
+    required AppDatabase db,
+  }) async {
+    if (groupId.isEmpty) return;
+    try {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = startOfDay
+          .add(const Duration(days: 1))
+          .subtract(const Duration(milliseconds: 1));
+
+      // Obtener transacciones del día.
+      final todayRows = await (db.select(db.transactionsTable)
+            ..where((t) => t.groupId.equals(groupId))
+            ..where((t) => t.date.isBetweenValues(startOfDay, endOfDay))
+            ..where((t) => t.type.isNotValue('transfer')))
+          .get();
+
+      double dayExpense = 0;
+      double dayIncome = 0;
+      // Acumular gasto por categoría para comparar con presupuestos.
+      final Map<String, double> expenseByCategory = {};
+
+      for (final row in todayRows) {
+        final val = row.amountUsdEquivalent ?? row.amount;
+        if (row.type == 'income') {
+          dayIncome += val;
+        } else {
+          dayExpense += val;
+          final catId = row.categoryId ?? 'uncategorized';
+          expenseByCategory[catId] = (expenseByCategory[catId] ?? 0) + val;
+        }
+      }
+
+      // Construir la línea base del resumen.
+      final buf = StringBuffer(
+        'Hoy: \$${dayExpense.toStringAsFixed(2)} en gastos, '
+        '\$${dayIncome.toStringAsFixed(2)} en ingresos.',
+      );
+
+      // Buscar la categoría con mayor porcentaje de uso del presupuesto mensual.
+      // Se usa el gasto acumulado del MES (no solo hoy) para el cálculo.
+      try {
+        final monthExpense = await db.transactionsDao.getExpenseByCategory(
+          groupId: groupId,
+          year: now.year,
+          month: now.month,
+        );
+        final categories = await db.categoriesDao.getCategoriesForGroup(groupId);
+        final catNameMap = {for (final c in categories) c.id: c.name};
+
+        String? topCatName;
+        double topPct = 0;
+
+        for (final entry in monthExpense.entries) {
+          final limit =
+              await db.budgetsDao.getLimitForCategory(
+                groupId: groupId,
+                categoryId: entry.key,
+              );
+          if (limit != null && limit > 0) {
+            final pct = (entry.value / limit) * 100;
+            if (pct > topPct) {
+              topPct = pct;
+              topCatName = catNameMap[entry.key] ?? entry.key;
+            }
+          }
+        }
+
+        if (topCatName != null && topPct > 0) {
+          buf.write(' $topCatName: ${topPct.round()}% usado.');
+        }
+      } catch (e) {
+        // Si falla el cálculo de presupuestos, se envía solo el resumen básico.
+        _log.w('NotificationService: no se pudo calcular uso de presupuesto: $e');
+      }
+
+      await scheduleDailySummaryNotification(body: buf.toString());
+    } catch (e) {
+      _log.w('NotificationService: fallo en buildAndScheduleDailySummary: $e');
     }
   }
 
