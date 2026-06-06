@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
@@ -236,6 +237,8 @@ class NotificationService {
               'Resumen de gastos e ingresos del día, programado a las 9 PM.',
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time, // repite diariamente
       );
       _log.i('NotificationService: resumen diario programado para $scheduled');
@@ -263,7 +266,8 @@ class NotificationService {
       // Obtener transacciones del día.
       final todayRows = await (db.select(db.transactionsTable)
             ..where((t) => t.groupId.equals(groupId))
-            ..where((t) => t.date.isBetweenValues(startOfDay, endOfDay))
+            ..where((t) => t.date.isBiggerOrEqualValue(startOfDay) &
+                t.date.isSmallerOrEqualValue(endOfDay))
             ..where((t) => t.type.isNotValue('transfer')))
           .get();
 
