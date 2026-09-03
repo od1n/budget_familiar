@@ -58,12 +58,11 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
   Future<void> _buyProduct(String productId) async {
     if (!_isMobile) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Las suscripciones se gestionan desde la app móvil (Android). '
-            'Suscríbete desde tu teléfono y luego usa "Restaurar" aquí.',
+            S.of(context).paywallDesktopNotice,
           ),
-          duration: Duration(seconds: 5),
+          duration: const Duration(seconds: 5),
         ),
       );
       return;
@@ -72,8 +71,8 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
     final product = IapService.instance.findProduct(productId);
     if (product == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Producto no disponible. Intenta más tarde.'),
+        SnackBar(
+          content: Text(S.of(context).productUnavailable),
         ),
       );
       return;
@@ -153,9 +152,9 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
               _PlanCard(
                 title: S.of(context).planFamiliarTitle,
                 subtitle: S.of(context).planFamiliarSubtitle,
-                price: '\$2.99 / mes',
+                price: S.of(context).pricePerMonth('\$2.99'),
                 priceVes: _toVes(2.99, parallelRate),
-                annualPrice: '\$19.99 / año (ahorra 44%)',
+                annualPrice: S.of(context).pricePerYearSave('\$19.99'),
                 annualPriceVes: _toVes(19.99, parallelRate),
                 color: AppColors.primary,
                 purchasing: _purchasing,
@@ -166,7 +165,7 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
               _PlanCard(
                 title: S.of(context).planPremiumTitle,
                 subtitle: S.of(context).planPremiumSubtitle,
-                price: '\$9.99 / mes',
+                price: S.of(context).pricePerMonth('\$9.99'),
                 priceVes: _toVes(9.99, parallelRate),
                 annualPrice: null,
                 annualPriceVes: null,
@@ -194,8 +193,7 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          'Suscríbete desde la app en tu teléfono Android. '
-                          'Luego usa "Restaurar" aquí para activar el plan.',
+                          S.of(context).paywallDesktopBanner,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppColors.primary,
                               ),
@@ -208,7 +206,7 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
               const SizedBox(height: AppSpacing.sm),
               if (parallelRate != null)
                 Text(
-                  'Ref. tasa paralela: Bs. ${parallelRate.toStringAsFixed(2)}/\$',
+                  S.of(context).parallelRateRef(parallelRate.toStringAsFixed(2)),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textDisabled,
                       ),
@@ -287,8 +285,8 @@ class _CurrentPlanBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final expires = state.expiresAt;
     final expiryText = expires != null
-        ? 'Vence el ${expires.day}/${expires.month}/${expires.year}'
-        : 'Sin fecha de vencimiento';
+        ? S.of(context).expiresOn('${expires.day}/${expires.month}/${expires.year}')
+        : S.of(context).noExpiry;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -305,7 +303,7 @@ class _CurrentPlanBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Plan ${state.planLabel} activo',
+                S.of(context).planActiveNamed(state.planLabel),
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: AppColors.income,
@@ -341,49 +339,49 @@ typedef _FeatureDef = ({
 class _FeatureTable extends StatelessWidget {
   const _FeatureTable();
 
-  static final List<_FeatureDef> _features = [
+  List<_FeatureDef> _features(BuildContext context) => [
     (
-      label: 'Transacciones ilimitadas',
+      label: S.of(context).featUnlimitedTx,
       free: true, family: true, premium: true,
       freeNote: null, familyNote: null, premiumNote: null,
     ),
     (
-      label: 'Presupuestos y metas',
+      label: S.of(context).featBudgetsGoals,
       free: true, family: true, premium: true,
       freeNote: null, familyNote: null, premiumNote: null,
     ),
     (
-      label: 'Categorías personalizadas',
+      label: S.of(context).featCustomCategories,
       free: true, family: true, premium: true,
-      freeNote: 'Hasta 10', familyNote: 'Hasta 30', premiumNote: 'Hasta 50',
+      freeNote: S.of(context).upTo(10), familyNote: S.of(context).upTo(30), premiumNote: S.of(context).upTo(50),
     ),
     (
-      label: 'Miembros del grupo',
+      label: S.of(context).featGroupMembers,
       free: true, family: true, premium: true,
-      freeNote: 'Hasta 2', familyNote: 'Hasta 5', premiumNote: 'Hasta 10',
+      freeNote: S.of(context).upTo(2), familyNote: S.of(context).upTo(5), premiumNote: S.of(context).upTo(10),
     ),
     (
-      label: 'Exportar PDF y CSV',
+      label: S.of(context).featExportPdfCsv,
       free: false, family: true, premium: true,
       freeNote: null, familyNote: null, premiumNote: null,
     ),
     (
-      label: 'OCR de comprobantes',
+      label: S.of(context).featOcr,
       free: false, family: true, premium: true,
       freeNote: null, familyNote: null, premiumNote: null,
     ),
     (
-      label: 'App de escritorio',
+      label: S.of(context).featDesktopApp,
       free: false, family: true, premium: true,
       freeNote: null, familyNote: null, premiumNote: null,
     ),
     (
-      label: 'IA: insights financieros',
+      label: S.of(context).featAiInsights,
       free: false, family: false, premium: true,
       freeNote: null, familyNote: null, premiumNote: null,
     ),
     (
-      label: 'Soporte prioritario',
+      label: S.of(context).featPrioritySupport,
       free: false, family: true, premium: true,
       freeNote: null, familyNote: null, premiumNote: null,
     ),
@@ -391,6 +389,7 @@ class _FeatureTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final features = _features(context);
     return Card(
       child: Column(
         children: [
@@ -403,21 +402,21 @@ class _FeatureTable extends StatelessWidget {
             child: Row(
               children: [
                 const Expanded(child: SizedBox()),
-                _HeaderCell('Gratis', color: AppColors.textSecondary),
-                _HeaderCell('Familiar', color: AppColors.primary),
-                _HeaderCell('Premium', color: AppColors.savings),
+                _HeaderCell(S.of(context).planColFree, color: AppColors.textSecondary),
+                _HeaderCell(S.of(context).planColFamily, color: AppColors.primary),
+                _HeaderCell(S.of(context).planColPremium, color: AppColors.savings),
               ],
             ),
           ),
           const Divider(height: 1),
           // Filas
-          ..._features.asMap().entries.map((entry) {
+          ...features.asMap().entries.map((entry) {
             final i = entry.key;
             final f = entry.value;
             return Column(
               children: [
                 _FeatureRow(feature: f),
-                if (i < _features.length - 1)
+                if (i < features.length - 1)
                   const Divider(height: 1, indent: AppSpacing.md),
               ],
             );
@@ -642,7 +641,7 @@ class _PlanCard extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      '≈ $priceVes / mes',
+                      S.of(context).vesPerMonth(priceVes!),
                       style: TextStyle(
                         fontSize: 11,
                         color: color.withValues(alpha: 0.7),
@@ -667,7 +666,7 @@ class _PlanCard extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        '≈ $annualPriceVes / año',
+                        S.of(context).vesPerYear(annualPriceVes!),
                         style: TextStyle(
                           fontSize: 11,
                           color: color.withValues(alpha: 0.7),

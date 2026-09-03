@@ -90,11 +90,10 @@ class CsvColumnMapping {
 
 /// Error de parseo con contexto de fila.
 class CsvParseError {
-  const CsvParseError({required this.rowIndex, required this.message});
+  const CsvParseError({required this.rowIndex, required this.code, this.detail});
   final int rowIndex;
-  final String message;
-  @override
-  String toString() => 'Fila ${rowIndex + 1}: $message';
+  final String code;
+  final String? detail;
 }
 
 /// Resultado de una importación.
@@ -165,7 +164,7 @@ class CsvImportService {
         // ── Fecha ──
         final rawDate = _cell(row, mapping.dateCol);
         if (rawDate.isEmpty) {
-          errors.add(CsvParseError(rowIndex: i, message: 'Fecha vacía'));
+          errors.add(CsvParseError(rowIndex: i, code: 'emptyDate'));
           continue;
         }
         DateTime date;
@@ -173,7 +172,7 @@ class CsvImportService {
           date = dateFmt.parseStrict(rawDate.trim());
         } catch (_) {
           errors.add(
-            CsvParseError(rowIndex: i, message: 'Fecha inválida: "$rawDate"'),
+            CsvParseError(rowIndex: i, code: 'invalidDate', detail: rawDate),
           );
           continue;
         }
@@ -191,7 +190,7 @@ class CsvImportService {
           final parsed = _parseAmount(raw);
           if (parsed == null) {
             errors.add(
-              CsvParseError(rowIndex: i, message: 'Monto inválido: "$raw"'),
+              CsvParseError(rowIndex: i, code: 'invalidAmount', detail: raw),
             );
             continue;
           }
@@ -215,7 +214,7 @@ class CsvImportService {
             errors.add(
               CsvParseError(
                 rowIndex: i,
-                message: 'Débito y crédito vacíos o cero',
+                code: 'emptyDebitCredit',
               ),
             );
             continue;
@@ -232,7 +231,7 @@ class CsvImportService {
           ),
         );
       } catch (e) {
-        errors.add(CsvParseError(rowIndex: i, message: e.toString()));
+        errors.add(CsvParseError(rowIndex: i, code: 'exception', detail: e.toString()));
       }
     }
 

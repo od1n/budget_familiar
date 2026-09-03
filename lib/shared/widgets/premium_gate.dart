@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../features/subscription/presentation/pages/paywall_page.dart';
 import '../../features/subscription/providers/subscription_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 // ── Nivel mínimo de plan requerido ────────────────────────────────────────────
 
@@ -217,8 +218,8 @@ class _LockedOverlay extends StatelessWidget {
             Flexible(
               child: Text(
                 featureLabel != null
-                    ? '$featureLabel · Solo en $planLabel'
-                    : 'Disponible en $planLabel',
+                    ? S.of(context).gateOnlyInPlan(featureLabel!, planLabel)
+                    : S.of(context).gateAvailableInPlan(planLabel),
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.primary,
@@ -249,7 +250,7 @@ class _LockedIcon extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.lock_outline_rounded),
       color: AppColors.textDisabled,
-      tooltip: 'Disponible en $planLabel',
+      tooltip: S.of(context).gateAvailableInPlan(planLabel),
       onPressed: onUpgrade,
     );
   }

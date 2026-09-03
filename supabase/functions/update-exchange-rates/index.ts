@@ -44,22 +44,73 @@ async function fetchDolarApi(): Promise<{ official: number | null; parallel: num
     if (!res.ok) return { official: null, parallel: null }
 
     const data = await res.json() as Array<{
-      nombre: string; promedio: number; promedioBcv?: number
+      moneda: string; fuente: string; nombre: string; promedio: number
     }>
 
-    // El array tiene objetos con nombre: 'Oficial', 'Paralelo', etc.
-    const oficial  = data.find((d) => d.nombre?.toLowerCase().includes('oficial'))
-    const paralelo = data.find((d) => d.nombre?.toLowerCase().includes('paralelo') ||
-                                      d.nombre?.toLowerCase().includes('paralela'))
+    // El discriminador correcto es `fuente` ('oficial' | 'paralelo').
+    // OJO: el objeto oficial viene con nombre "Dólar" (NO "Oficial"),
+    // por eso buscar dentro de `nombre` fallaba y el BCV quedaba nulo.
+    const oficial  = data.find((d) => d.fuente === 'oficial')
+    const paralelo = data.find((d) => d.fuente === 'paralelo')
 
     return {
-      official: oficial?.promedio ?? oficial?.promedioBcv ?? null,
+      official: oficial?.promedio ?? null,
       parallel: paralelo?.promedio ?? null,
     }
   } catch (e) {
     console.warn('dolarapi.com error:', e)
     return { official: null, parallel: null }
   }
+}
+
+// ── Fetch euro (ve.dolarapi.com/v1/euros) ─────────────────────────────────────
+
+async function fetchDolarApiEur(): Promise<{ official: number | null; parallel: number | null }> {
+  try {
+    const res = await fetch('https://ve.dolarapi.com/v1/euros', {
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return { official: null, parallel: null }
+    const data = await res.json() as Array<{ fuente: string; promedio: number }>
+    const oficial  = data.find((d) => d.fuente === 'oficial')
+    const paralelo = data.find((d) => d.fuente === 'paralelo')
+    return {
+      official: oficial?.promedio ?? null,
+      parallel: paralelo?.promedio ?? null,
+    }
+  } catch (e) {
+    console.warn('dolarapi.com euros error:', e)
+    return { official: null, parallel: null }
+  }
+}
+
+// ── Forex real EUR/USD (ECB vía frankfurter; respaldo open.er-api) ────────────
+
+async function fetchForexEurUsd(): Promise<number | null> {
+  try {
+    const res = await fetch(
+      'https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD',
+      { signal: AbortSignal.timeout(8000) },
+    )
+    if (res.ok) {
+      const d = await res.json() as { rates?: { USD?: number } }
+      if (d.rates?.USD && d.rates.USD > 0) return d.rates.USD
+    }
+  } catch (e) {
+    console.warn('frankfurter error:', e)
+  }
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/EUR', {
+      signal: AbortSignal.timeout(8000),
+    })
+    if (res.ok) {
+      const d = await res.json() as { rates?: { USD?: number } }
+      if (d.rates?.USD && d.rates.USD > 0) return d.rates.USD
+    }
+  } catch (e) {
+    console.warn('open.er-api error:', e)
+  }
+  return null
 }
 
 // ── Fallback: monitordolarvenezuela.com ───────────────────────────────────────
@@ -130,6 +181,51 @@ Deno.serve(async (req) => {
       console.log(`Paralela: 1 USD = ${parallelRate} VES`)
     }
 
+    // ── Euro (EUR → VES) ─────────────────────────────────────────────────────
+    const eur = await fetchDolarApiEur()
+    if (eur.official !== null && eur.official > 0) {
+      rows.push({
+        id: `official_EUR_${new Date().toISOString().slice(0, 13)}`,
+        from_currency: 'EUR',
+        to_currency: 'VES',
+        rate: eur.official,
+        rate_type: 'official',
+        source: 'dolarapi.com/euros',
+        valid_at: now,
+        created_at: now,
+      })
+      console.log(`BCV euro: 1 EUR = ${eur.official} VES`)
+    }
+    if (eur.parallel !== null && eur.parallel > 0) {
+      rows.push({
+        id: `parallel_EUR_${new Date().toISOString().slice(0, 13)}`,
+        from_currency: 'EUR',
+        to_currency: 'VES',
+        rate: eur.parallel,
+        rate_type: 'parallel',
+        source: 'dolarapi.com/euros',
+        valid_at: now,
+        created_at: now,
+      })
+      console.log(`Paralela euro: 1 EUR = ${eur.parallel} VES`)
+    }
+
+    // ── Forex EUR/USD (mercado real, para usuarios europeos) ──────────────────
+    const eurUsd = await fetchForexEurUsd()
+    if (eurUsd !== null && eurUsd > 0) {
+      rows.push({
+        id: `forex_EUR_USD_${new Date().toISOString().slice(0, 13)}`,
+        from_currency: 'EUR',
+        to_currency: 'USD',
+        rate: eurUsd,
+        rate_type: 'forex',
+        source: 'frankfurter.dev/ecb',
+        valid_at: now,
+        created_at: now,
+      })
+      console.log(`Forex: 1 EUR = ${eurUsd} USD`)
+    }
+
     if (rows.length === 0) {
       console.warn('No se pudo obtener ninguna tasa — abortando')
       return new Response(
@@ -155,6 +251,9 @@ Deno.serve(async (req) => {
       updated: rows.length,
       official: official ?? null,
       parallel: parallelRate ?? null,
+      eur_official: eur.official ?? null,
+      eur_parallel: eur.parallel ?? null,
+      eur_usd: eurUsd ?? null,
       timestamp: now,
     }
 

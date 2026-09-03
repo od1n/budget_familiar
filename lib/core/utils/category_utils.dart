@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 // ── Mapper de código de ícono → IconData ─────────────────────────────────────
 // Usado en TransactionsPage, _CategoryLabel y CategoryCreationDialog.
 
@@ -111,3 +113,28 @@ const kColorPalette = <String>[
   '#784212',
   '#6C3483',
 ];
+
+
+// ── Nombre localizado de una categoría ───────────────────────────────────────
+// Las categorías del sistema (sys_*) se guardan en la BD con nombre en español;
+// aquí se traducen al idioma actual. Las personalizadas devuelven su [fallback].
+String categoryDisplayName(BuildContext context, String id, String fallback) {
+  final s = S.of(context);
+  return switch (id) {
+    'sys_food' => s.sysCatFood,
+    'sys_transport' => s.sysCatTransport,
+    'sys_services' => s.sysCatServices,
+    'sys_health' => s.sysCatHealth,
+    'sys_education' => s.sysCatEducation,
+    'sys_entertainment' => s.sysCatEntertainment,
+    'sys_clothing' => s.sysCatClothing,
+    'sys_home' => s.sysCatHome,
+    'sys_debt' => s.sysCatDebt,
+    'sys_other' => s.sysCatOther,
+    'sys_income_salary' => s.sysCatSalary,
+    'sys_income_freelance' => s.sysCatFreelance,
+    'sys_income_investment' => s.sysCatInvestment,
+    'sys_income_other' => s.sysCatOtherIncome,
+    _ => fallback,
+  };
+}

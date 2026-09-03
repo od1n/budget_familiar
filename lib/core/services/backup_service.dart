@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../data/local/app_database.dart';
+import '../../l10n/app_localizations.dart';
 
 final _log = Logger();
 
@@ -52,7 +53,7 @@ class BackupService {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Backup guardado en ${outFile.path}'),
+              content: Text(S.of(context).backupSaved(outFile.path)),
               duration: const Duration(seconds: 5),
             ),
           );
@@ -70,7 +71,7 @@ class BackupService {
       _log.e('Error exportando backup', error: e);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al exportar: $e')),
+          SnackBar(content: Text(S.of(context).exportError(e.toString()))),
         );
       }
     }
@@ -100,10 +101,9 @@ class BackupService {
       if (version > _kBackupVersion) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'Este backup fue creado con una versión más reciente de la app. '
-                'Actualiza la app e intenta de nuevo.',
+                S.of(context).backupNewerVersion,
               ),
             ),
           );
@@ -118,21 +118,18 @@ class BackupService {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Restaurar backup'),
+          title: Text(S.of(context).restoreBackupTitle),
           content: Text(
-            'Se importarán los datos del backup '
-            '(${_summarize(data)}). '
-            'Los registros existentes con el mismo ID se sobrescribirán.\n\n'
-            '¿Continuar?',
+            S.of(context).restoreBackupWarning(_summarize(context, data)),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
+              child: Text(S.of(context).cancelButton),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Restaurar'),
+              child: Text(S.of(context).restoreButton),
             ),
           ],
         ),
@@ -143,14 +140,14 @@ class BackupService {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$count registros restaurados.')),
+          SnackBar(content: Text(S.of(context).recordsRestored(count))),
         );
       }
     } catch (e) {
       _log.e('Error importando backup', error: e);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al importar: $e')),
+          SnackBar(content: Text(S.of(context).importError(e.toString()))),
         );
       }
     }
@@ -512,22 +509,23 @@ class BackupService {
   static List<Map<String, dynamic>> _list(dynamic v) =>
       (v as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
 
-  static String _summarize(Map<String, dynamic> data) {
+  static String _summarize(BuildContext context, Map<String, dynamic> data) {
+    final s = S.of(context);
     final parts = <String>[];
     void add(String key, String label) {
       final list = data[key] as List?;
       if (list != null && list.isNotEmpty) parts.add('${list.length} $label');
     }
 
-    add('transactions', 'transacciones');
-    add('categories', 'categorías');
-    add('budgets', 'presupuestos');
-    add('savingsGoals', 'metas');
-    add('investments', 'inversiones');
-    add('virtualEnvelopes', 'sobres');
-    add('accounts', 'cuentas');
-    add('recurringTransactions', 'recurrentes');
-    return parts.isEmpty ? 'vacío' : parts.join(', ');
+    add('transactions', s.sumTransactions);
+    add('categories', s.sumCategories);
+    add('budgets', s.sumBudgets);
+    add('savingsGoals', s.sumGoals);
+    add('investments', s.sumInvestments);
+    add('virtualEnvelopes', s.sumEnvelopes);
+    add('accounts', s.sumAccounts);
+    add('recurringTransactions', s.sumRecurring);
+    return parts.isEmpty ? s.sumEmpty : parts.join(', ');
   }
 
   static bool get _isDesktop =>

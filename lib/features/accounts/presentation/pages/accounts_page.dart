@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/utils/category_utils.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../data/local/app_database.dart';
 import '../../../subscription/providers/subscription_provider.dart';
 import '../../providers/accounts_provider.dart';
@@ -47,6 +48,29 @@ const _kAccountTypes = [
   ('investment', 'Inversión'),
 ];
 
+String _accountTypeLabel(BuildContext context, String type) => switch (type) {
+      'cash' => S.of(context).acctTypeCash,
+      'bank' => S.of(context).acctTypeBank,
+      'digital' => S.of(context).acctTypeDigital,
+      'credit' => S.of(context).acctTypeCredit,
+      'investment' => S.of(context).acctTypeInvestment,
+      _ => type,
+    };
+
+String _accountIconLabel(BuildContext context, String code) => switch (code) {
+      'account_balance_wallet' => S.of(context).acctIconWallet,
+      'account_balance' => S.of(context).acctIconBank,
+      'savings' => S.of(context).acctIconSavings,
+      'credit_card' => S.of(context).acctIconCard,
+      'payments' => S.of(context).acctIconPayments,
+      'attach_money' => S.of(context).acctIconCash,
+      'phone_android' => S.of(context).acctIconDigital,
+      'trending_up' => S.of(context).acctIconInvestment,
+      'store' => S.of(context).acctIconBusiness,
+      'home' => S.of(context).acctIconHome,
+      _ => code,
+    };
+
 // ── Page principal ────────────────────────────────────────────────────────────
 
 class AccountsPage extends ConsumerWidget {
@@ -57,10 +81,10 @@ class AccountsPage extends ConsumerWidget {
     final accountsAsync = ref.watch(activeAccountsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cuentas')),
+      appBar: AppBar(title: Text(S.of(context).accountsTitle)),
       body: accountsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(S.of(context).errorGenericDetail(e.toString()))),
         data: (accounts) => accounts.isEmpty
             ? _EmptyState(onNew: () => _openForm(context, ref, null))
             : ListView.builder(
@@ -90,7 +114,7 @@ class AccountsPage extends ConsumerWidget {
           _openForm(context, ref, null);
         },
         icon: const Icon(Icons.add),
-        label: const Text('Nueva cuenta'),
+        label: Text(S.of(context).newAccount),
       ),
     );
   }
@@ -163,11 +187,7 @@ class _AccountTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final color = colorFromHex(account.colorHex);
     final icon = iconFromCode(account.iconCode);
-    final typeLabel = _kAccountTypes
-            .where((t) => t.$1 == account.type)
-            .firstOrNull
-            ?.$2 ??
-        account.type;
+    final typeLabel = _accountTypeLabel(context, account.type);
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -188,17 +208,17 @@ class _AccountTile extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 18),
               onPressed: onEdit,
-              tooltip: 'Editar',
+              tooltip: S.of(context).editButton,
             ),
             IconButton(
               icon: const Icon(Icons.upload_file_outlined, size: 18),
               onPressed: onImportCsv,
-              tooltip: 'Importar CSV',
+              tooltip: S.of(context).importCsvButton,
             ),
             IconButton(
               icon: const Icon(Icons.archive_outlined, size: 18),
               onPressed: onArchive,
-              tooltip: 'Archivar',
+              tooltip: S.of(context).archiveButton,
               color: AppColors.textDisabled,
             ),
           ],
@@ -263,15 +283,15 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.textDisabled,
             ),
             const SizedBox(height: AppSpacing.md),
-            const Text(
-              'Sin cuentas registradas',
-              style: TextStyle(color: AppColors.textSecondary),
+            Text(
+              S.of(context).noAccounts,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton.icon(
               onPressed: onNew,
               icon: const Icon(Icons.add),
-              label: const Text('Agregar cuenta'),
+              label: Text(S.of(context).addAccount),
             ),
           ],
         ),
@@ -347,7 +367,7 @@ class _AccountFormDialogState extends State<_AccountFormDialog> {
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
     return AlertDialog(
-      title: Text(isEditing ? 'Editar cuenta' : 'Nueva cuenta'),
+      title: Text(isEditing ? S.of(context).editAccount : S.of(context).newAccount),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -356,7 +376,7 @@ class _AccountFormDialogState extends State<_AccountFormDialog> {
             // Nombre
             TextField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Nombre'),
+              decoration: InputDecoration(labelText: S.of(context).nameLabel),
               autofocus: true,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -364,12 +384,12 @@ class _AccountFormDialogState extends State<_AccountFormDialog> {
             // Tipo
             DropdownButtonFormField<String>(
               initialValue: _type,
-              decoration: const InputDecoration(labelText: 'Tipo'),
+              decoration: InputDecoration(labelText: S.of(context).fieldType),
               items: _kAccountTypes
                   .map(
                     (t) => DropdownMenuItem(
                       value: t.$1,
-                      child: Text(t.$2),
+                      child: Text(_accountTypeLabel(context, t.$1)),
                     ),
                   )
                   .toList(),
@@ -380,7 +400,7 @@ class _AccountFormDialogState extends State<_AccountFormDialog> {
             // Moneda
             DropdownButtonFormField<String>(
               initialValue: _currency,
-              decoration: const InputDecoration(labelText: 'Moneda'),
+              decoration: InputDecoration(labelText: S.of(context).currencyFieldLabel),
               items: ['USD', 'VES', 'EUR', 'COP']
                   .map(
                     (c) => DropdownMenuItem(
@@ -400,16 +420,16 @@ class _AccountFormDialogState extends State<_AccountFormDialog> {
                 decimal: true,
                 signed: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Balance inicial',
-                helperText: 'Usa negativo para deudas (tarjeta de crédito)',
+              decoration: InputDecoration(
+                labelText: S.of(context).initialBalanceLabel,
+                helperText: S.of(context).initialBalanceHelper,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
 
             // Color
-            const Text(
-              'Color',
+            Text(
+              S.of(context).colorLabel,
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
@@ -446,8 +466,8 @@ class _AccountFormDialogState extends State<_AccountFormDialog> {
             const SizedBox(height: AppSpacing.lg),
 
             // Ícono
-            const Text(
-              'Ícono',
+            Text(
+              S.of(context).iconLabel,
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
@@ -463,7 +483,7 @@ class _AccountFormDialogState extends State<_AccountFormDialog> {
                 return GestureDetector(
                   onTap: () => setState(() => _iconCode = entry.$1),
                   child: Tooltip(
-                    message: entry.$2,
+                    message: _accountIconLabel(context, entry.$1),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 120),
                       width: 40,
@@ -494,11 +514,11 @@ class _AccountFormDialogState extends State<_AccountFormDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text(S.of(context).cancelButton),
         ),
         ElevatedButton(
           onPressed: _submit,
-          child: Text(isEditing ? 'Guardar' : 'Crear'),
+          child: Text(isEditing ? S.of(context).saveButton : S.of(context).createButton),
         ),
       ],
     );

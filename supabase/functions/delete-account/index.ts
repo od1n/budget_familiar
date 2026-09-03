@@ -79,10 +79,34 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── 2.5 Borrar datos de grupos propios sin cascada ──────────────────────
+    // Estas tablas usan group_id como TEXT SIN llave foránea a family_groups,
+    // así que el CASCADE de auth.users NO las alcanza. Se borran explícitamente
+    // para no dejar datos personales huérfanos (derecho de supresión GDPR/Play).
+    const ownedGroupIds = (ownedGroups ?? []).map((g) => g.id as string)
+    if (ownedGroupIds.length > 0) {
+      const groupScopedTables = [
+        'accounts',
+        'ai_insights',
+        'budgets',
+        'categories',
+        'savings_goals',
+        'virtual_envelopes',
+      ]
+      for (const table of groupScopedTables) {
+        const { error: delErr } = await adminClient
+          .from(table)
+          .delete()
+          .in('group_id', ownedGroupIds)
+        if (delErr) throw delErr
+      }
+    }
+
     // ── 3. Eliminar el usuario ──────────────────────────────────────────────
-    // auth.users → ON DELETE CASCADE cubre:
+    // auth.users → ON DELETE CASCADE cubre el resto:
     //   profiles, family_groups (owner_id), group_members (user_id),
-    //   transactions (user_id), ai_usage_log (user_id)
+    //   transactions (user_id), recurring_transactions, investments,
+    //   ai_usage_log, fcm_tokens (todas con user_id ON DELETE CASCADE).
     const { error: deleteError } =
       await adminClient.auth.admin.deleteUser(userId)
 

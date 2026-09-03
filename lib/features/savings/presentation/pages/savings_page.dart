@@ -40,7 +40,7 @@ class SavingsPage extends ConsumerWidget {
       appBar: AppBar(title: Text(S.of(context).savingsPageTitle)),
       body: goalsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(S.of(context).errorGenericDetail(e.toString()))),
         data: (goals) => goals.isEmpty
             ? _EmptyState(onNew: () => _openForm(context, ref))
             : ListView(
@@ -373,7 +373,7 @@ class _GoalCard extends StatelessWidget {
                   icon: const Icon(Icons.edit_outlined, size: 18),
                   onPressed: onEdit,
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Editar meta',
+                  tooltip: S.of(context).editGoal,
                 ),
                 IconButton(
                   icon: const Icon(
@@ -383,7 +383,7 @@ class _GoalCard extends StatelessWidget {
                   ),
                   onPressed: onDelete,
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Eliminar',
+                  tooltip: S.of(context).deleteButton,
                 ),
               ],
             ),
@@ -402,14 +402,13 @@ class _GoalCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'de ${goal.currencyCode} ${fmt.format(goal.targetAmount)}',
+                      S.of(context).savingsOfTarget('${goal.currencyCode} ${fmt.format(goal.targetAmount)}'),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     if (goal.inflationRateMonthly != null &&
                         goal.targetDate != null)
                       Text(
-                        'Ajustado: ${goal.currencyCode} '
-                        '${fmt.format(_calcAdjustedTarget(goal.targetAmount, goal.inflationRateMonthly!, goal.targetDate))}',
+                        S.of(context).savingsAdjusted('${goal.currencyCode} ${fmt.format(_calcAdjustedTarget(goal.targetAmount, goal.inflationRateMonthly!, goal.targetDate))}'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppColors.warning,
                               fontSize: 10,
@@ -446,7 +445,7 @@ class _GoalCard extends StatelessWidget {
                     ),
                     if (goal.targetDate != null)
                       Text(
-                        'Fecha: ${DateFormat('d MMM yyyy', 'es').format(goal.targetDate!)}',
+                        S.of(context).dateColonLabel(DateFormat('d MMM yyyy', 'es').format(goal.targetDate!)),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppColors.textDisabled,
                               fontSize: 11,
@@ -545,7 +544,7 @@ class _EditGoalDialogState extends State<_EditGoalDialog> {
               controller: widget.nameCtrl,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                labelText: 'Nombre',
+                labelText: S.of(context).nameLabel,
                 errorText: _nameError,
               ),
               onChanged: (_) => setState(() => _nameError = null),

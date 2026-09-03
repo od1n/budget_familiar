@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/display_prefs_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -20,21 +21,9 @@ import '../../../../core/services/insights_service.dart';
 import '../../../../core/utils/category_utils.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/period_provider.dart';
 
 // ── Helpers globales ──────────────────────────────────────────────────────────
-
-String _catLabel(String id) => switch (id) {
-      'sys_food' => 'Alimentación',
-      'sys_transport' => 'Transporte',
-      'sys_services' => 'Servicios',
-      'sys_health' => 'Salud',
-      'sys_education' => 'Educación',
-      'sys_entertainment' => 'Entretenimiento',
-      'sys_clothing' => 'Ropa',
-      'sys_home' => 'Hogar',
-      'sys_debt' => 'Deudas',
-      _ => 'Otros',
-    };
 
 String _fmtMoney(double v) => NumberFormat('#,##0.00', 'es').format(v);
 
@@ -51,18 +40,22 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeMonth = ref.watch(activeMonthProvider);
+    final period = ref.watch(selectedPeriodProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final showAd = !isPremium && ref.read(adServiceProvider).isSupported;
 
     final s = S.of(context);
     return Scaffold(
-      appBar: _DashboardAppBar(activeMonth: activeMonth),
+      appBar: const _DashboardAppBar(),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.screenPadding),
         children: [
           const _RecurringAlertCard(),
           const _BalanceCard(),
+          if (period.mode == PeriodMode.fullYear) ...[
+            const SizedBox(height: AppSpacing.lg),
+            const _MonthlyBreakdownSection(),
+          ],
           const SizedBox(height: AppSpacing.lg),
           const _AccountsSummarySection(),
           _SectionTitle(s.trendTitle),
@@ -94,33 +87,273 @@ class DashboardPage extends ConsumerWidget {
 // ── AppBar ────────────────────────────────────────────────────────────────────
 
 class _DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
-  const _DashboardAppBar({required this.activeMonth});
-  final DateTime activeMonth;
+  const _DashboardAppBar();
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
+  String _label(BuildContext context, Period p) {
+    switch (p.mode) {
+      case PeriodMode.month:
+        final l = DateFormat('MMMM yyyy', 'es').format(p.anchor);
+        return l[0].toUpperCase() + l.substring(1);
+      case PeriodMode.yearToDate:
+        return '${S.of(context).periodYearToDate} ${p.year}';
+      case PeriodMode.fullYear:
+        return '${p.year}';
+      case PeriodMode.customRange:
+        final fmt = DateFormat('d MMM', 'es');
+        final fmtY = DateFormat('d MMM yyyy', 'es');
+        return '${fmt.format(p.start)} — ${fmtY.format(p.end)}';
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final label = DateFormat('MMMM yyyy', 'es').format(activeMonth);
-    final isCurrent = activeMonth.year == DateTime.now().year &&
-        activeMonth.month == DateTime.now().month;
+    final period = ref.watch(selectedPeriodProvider);
+    final isMonth = period.mode == PeriodMode.month;
 
     return AppBar(
-      title: Text(label[0].toUpperCase() + label.substring(1)),
+      title: InkWell(
+        onTap: () => _showPeriodMenu(context, ref),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  _label(context, period),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(Icons.arrow_drop_down, size: 22),
+            ],
+          ),
+        ),
+      ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: () => ref.read(activeMonthProvider.notifier).previous(),
-        ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: isCurrent
-              ? null
-              : () => ref.read(activeMonthProvider.notifier).next(),
-        ),
+        if (isMonth) ...[
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: () =>
+                ref.read(selectedPeriodProvider.notifier).previousMonth(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: period.isCurrentMonth
+                ? null
+                : () => ref.read(selectedPeriodProvider.notifier).nextMonth(),
+          ),
+        ] else
+          IconButton(
+            icon: const Icon(Icons.tune),
+            onPressed: () => _showPeriodMenu(context, ref),
+          ),
         const SizedBox(width: AppSpacing.sm),
       ],
+    );
+  }
+
+  Future<void> _showPeriodMenu(BuildContext context, WidgetRef ref) async {
+    final s = S.of(context);
+    final notifier = ref.read(selectedPeriodProvider.notifier);
+    final current = ref.read(selectedPeriodProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xs),
+              child: Row(
+                children: [
+                  Text(
+                    s.periodSelectTitle,
+                    style: Theme.of(sheetCtx).textTheme.titleMedium,
+                  ),
+                ],
+              ),
+            ),
+            _periodTile(sheetCtx, Icons.calendar_view_month,
+                s.periodCurrentMonth, current.mode == PeriodMode.month, () {
+              notifier.setMonth(DateTime.now());
+              Navigator.pop(sheetCtx);
+            }),
+            _periodTile(sheetCtx, Icons.event_available, s.periodYearToDate,
+                current.mode == PeriodMode.yearToDate, () {
+              notifier.setYearToDate();
+              Navigator.pop(sheetCtx);
+            }),
+            _periodTile(sheetCtx, Icons.calendar_month, s.periodFullYear,
+                current.mode == PeriodMode.fullYear, () {
+              notifier.setFullYear();
+              Navigator.pop(sheetCtx);
+            }),
+            _periodTile(sheetCtx, Icons.date_range, s.periodCustomRange,
+                current.mode == PeriodMode.customRange, () async {
+              Navigator.pop(sheetCtx);
+              final now = DateTime.now();
+              final picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(now.year - 5),
+                lastDate: now,
+                initialDateRange: current.mode == PeriodMode.customRange
+                    ? DateTimeRange(start: current.start, end: current.end)
+                    : null,
+                locale: const Locale('es'),
+              );
+              if (picked != null) {
+                notifier.setCustomRange(picked.start, picked.end);
+              }
+            }),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _periodTile(BuildContext context, IconData icon, String label,
+          bool selected, VoidCallback onTap) =>
+      ListTile(
+        leading: Icon(icon,
+            color: selected ? AppColors.primary : AppColors.textSecondary),
+        title: Text(label),
+        trailing: selected
+            ? const Icon(Icons.check, color: AppColors.primary, size: 20)
+            : null,
+        onTap: onTap,
+      );
+}
+
+// ── Desglose por mes (modo "año completo") ────────────────────────────────────
+
+class _MonthlyBreakdownSection extends ConsumerWidget {
+  const _MonthlyBreakdownSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
+    final groupId = ref.watch(activeGroupIdProvider);
+    final period = ref.watch(selectedPeriodProvider);
+    final async = ref.watch(
+      fullYearBreakdownProvider((groupId: groupId, year: period.year)),
+    );
+
+    return async.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (points) {
+        if (points.isEmpty) return const SizedBox.shrink();
+        final fmt = DateFormat('MMM', 'es');
+        double yInc = 0, yExp = 0;
+        for (final p in points) {
+          yInc += p.income;
+          yExp += p.expense;
+        }
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s.monthlyBreakdownTitle,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _breakdownHeader(context, s),
+                const Divider(height: 12),
+                ...points.map((p) {
+                  final m = fmt.format(p.month);
+                  return _breakdownRow(
+                    context,
+                    m[0].toUpperCase() + m.substring(1),
+                    p.income,
+                    p.expense,
+                    p.income - p.expense,
+                    bold: false,
+                  );
+                }),
+                const Divider(height: 12),
+                _breakdownRow(
+                  context,
+                  '${period.year}',
+                  yInc,
+                  yExp,
+                  yInc - yExp,
+                  bold: true,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _breakdownHeader(BuildContext context, S s) {
+    const st = TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textSecondary);
+    return Row(
+      children: [
+        const Expanded(flex: 2, child: SizedBox()),
+        Expanded(
+            flex: 3,
+            child: Text(s.incomeLabel, style: st, textAlign: TextAlign.right)),
+        Expanded(
+            flex: 3,
+            child: Text(s.expenseLabel, style: st, textAlign: TextAlign.right)),
+        Expanded(
+            flex: 3,
+            child:
+                Text(s.balanceShort, style: st, textAlign: TextAlign.right)),
+      ],
+    );
+  }
+
+  Widget _breakdownRow(BuildContext context, String label, double inc,
+      double exp, double bal, {required bool bold}) {
+    final w = bold ? FontWeight.w700 : FontWeight.w400;
+    final base = TextStyle(fontSize: 12, fontWeight: w);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+              flex: 2,
+              child: Text(label,
+                  style: base.copyWith(color: AppColors.textSecondary))),
+          Expanded(
+              flex: 3,
+              child: Text('\$ ${_fmtMoney(inc)}',
+                  style: base.copyWith(color: AppColors.income),
+                  textAlign: TextAlign.right)),
+          Expanded(
+              flex: 3,
+              child: Text('\$ ${_fmtMoney(exp)}',
+                  style: base.copyWith(color: AppColors.expense),
+                  textAlign: TextAlign.right)),
+          Expanded(
+              flex: 3,
+              child: Text('\$ ${_fmtMoney(bal)}',
+                  style: base.copyWith(
+                      color: bal >= 0
+                          ? AppColors.textPrimary
+                          : AppColors.expense),
+                  textAlign: TextAlign.right)),
+        ],
+      ),
     );
   }
 }
@@ -150,6 +383,44 @@ class _BalanceCardContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final color = summary.balance >= 0 ? AppColors.income : AppColors.expense;
     final rates = ref.watch(vesRatesProvider).valueOrNull;
+    final prefs = ref.watch(displayPrefsProvider);
+    final isBcv = prefs.rate == 'bcv';
+    final rateVal = isBcv ? (rates?.bcv ?? 0) : (rates?.parallel ?? 0);
+    final eurUsd = rates?.eurUsd ?? 0; // USD por 1 EUR (forex real)
+    final hasRate = rateVal > 0;
+    final hasEur = eurUsd > 0;
+    final hasConv = hasRate || hasEur;
+
+    // Moneda de visualización efectiva (cae a USD si falta la tasa necesaria).
+    var cur = prefs.currency;
+    if (cur == 'VES' && !hasRate) cur = 'USD';
+    if (cur == 'EUR' && !hasEur) cur = 'USD';
+
+    String fmtIn(String c, double usd) {
+      switch (c) {
+        case 'VES':
+          return 'Bs. ${_fmtMoney(usd * rateVal)}';
+        case 'EUR':
+          return '€ ${_fmtMoney(eurUsd > 0 ? usd / eurUsd : usd)}';
+        default:
+          return '\$ ${_fmtMoney(usd)}';
+      }
+    }
+
+    // Moneda de la línea secundaria (referencia).
+    String? secondaryCur;
+    if (cur == 'USD') {
+      secondaryCur = hasRate ? 'VES' : (hasEur ? 'EUR' : null);
+    } else {
+      secondaryCur = 'USD';
+    }
+
+    final currencyOptions = <String>[
+      'USD',
+      if (hasRate) 'VES',
+      if (hasEur) 'EUR',
+    ];
+    final rateLabel = isBcv ? 'BCV' : 'Paralela';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -162,40 +433,64 @@ class _BalanceCardContent extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              '\$ ${_fmtMoney(summary.balance)}',
+              fmtIn(cur, summary.balance),
               style: AppTypography.moneyDisplayLarge.copyWith(color: color),
             ),
-            if (rates != null && rates.parallel > 0) ...[
+            if (hasConv) ...[
               const SizedBox(height: 2),
               Row(
                 children: [
-                  Text(
-                    'Bs. ${_fmtMoney(summary.balance * rates.parallel)}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 5,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'Paralela Bs.${rates.parallel.toStringAsFixed(0)}/\$',
+                  if (secondaryCur != null)
+                    Text(
+                      fmtIn(secondaryCur!, summary.balance),
                       style: const TextStyle(
-                        fontSize: 10,
-                        color: AppColors.primary,
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                  if (hasRate) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '$rateLabel Bs.${rateVal.toStringAsFixed(0)}/\$',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  _MiniToggle(
+                    options: currencyOptions,
+                    selected: cur,
+                    onChanged: (v) =>
+                        ref.read(displayPrefsProvider.notifier).setCurrency(v),
                   ),
+                  if (hasRate) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    _MiniToggle(
+                      options: const ['parallel', 'bcv'],
+                      labels: const ['Paralela', 'BCV'],
+                      selected: prefs.rate,
+                      onChanged: (v) =>
+                          ref.read(displayPrefsProvider.notifier).setRate(v),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -227,7 +522,7 @@ class _BalanceCardContent extends ConsumerWidget {
                 Expanded(
                   child: _MiniStat(
                     label: S.of(context).incomeLabel,
-                    value: summary.totalIncome,
+                    display: fmtIn(cur, summary.totalIncome),
                     color: AppColors.income,
                     icon: Icons.arrow_downward,
                   ),
@@ -236,7 +531,7 @@ class _BalanceCardContent extends ConsumerWidget {
                 Expanded(
                   child: _MiniStat(
                     label: S.of(context).expenseLabel,
-                    value: summary.totalExpense,
+                    display: fmtIn(cur, summary.totalExpense),
                     color: AppColors.expense,
                     icon: Icons.arrow_upward,
                   ),
@@ -253,12 +548,12 @@ class _BalanceCardContent extends ConsumerWidget {
 class _MiniStat extends StatelessWidget {
   const _MiniStat({
     required this.label,
-    required this.value,
+    required this.display,
     required this.color,
     required this.icon,
   });
   final String label;
-  final double value;
+  final String display;
   final Color color;
   final IconData icon;
 
@@ -279,7 +574,7 @@ class _MiniStat extends StatelessWidget {
                 children: [
                   Text(label, style: Theme.of(context).textTheme.labelSmall),
                   Text(
-                    '\$ ${_fmtMoney(value)}',
+                    display,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -293,6 +588,56 @@ class _MiniStat extends StatelessWidget {
           ],
         ),
       );
+}
+
+class _MiniToggle extends StatelessWidget {
+  const _MiniToggle({
+    required this.options,
+    required this.selected,
+    required this.onChanged,
+    this.labels,
+  });
+  final List<String> options;
+  final List<String>? labels;
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(options.length, (i) {
+          final opt = options[i];
+          final lbl = labels != null ? labels![i] : opt;
+          final active = opt == selected;
+          return GestureDetector(
+            onTap: () => onChanged(opt),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: active ? AppColors.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                lbl,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: active ? Colors.white : AppColors.textSecondary,
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
 }
 
 // ── Gráfica de barras: tendencia 6 meses ─────────────────────────────────────
@@ -515,7 +860,7 @@ class _ExpensePieChart extends ConsumerWidget {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                _catLabel(e.value.key),
+                                categoryDisplayName(context, e.value.key, S.of(context).sysCatOther),
                                 style: const TextStyle(fontSize: 12),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1018,9 +1363,8 @@ class _AiRecommendationsCardState
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.sm),
-              const Text(
-                'Compara 3 meses de historial, analiza metas,\n'
-                'inversiones y contexto económico venezolano.',
+              Text(
+                S.of(context).aiInsightsDesc,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: AppColors.textSecondary, fontSize: 13),

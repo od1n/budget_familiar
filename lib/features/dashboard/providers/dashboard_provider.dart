@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/services/widget_service.dart';
 import '../../../data/local/app_database.dart';
 import '../../../data/local/daos/transactions_dao.dart';
+import 'period_provider.dart';
 
 part 'dashboard_provider.g.dart';
 
@@ -38,11 +39,11 @@ Stream<MonthlySummary> monthlySummary(
   required String groupId,
 }) {
   final db = ref.watch(appDatabaseProvider);
-  final month = ref.watch(activeMonthProvider);
-  final stream = db.transactionsDao.watchMonthlySummary(
+  final period = ref.watch(selectedPeriodProvider);
+  final stream = db.transactionsDao.watchSummaryForRange(
     groupId: groupId,
-    year: month.year,
-    month: month.month,
+    start: period.start,
+    end: period.end,
   );
   // Actualizar el widget de Android cuando cambia el resumen mensual.
   return stream.map((summary) {
@@ -61,11 +62,11 @@ Stream<Map<String, double>> expenseByCategory(
   required String groupId,
 }) {
   final db = ref.watch(appDatabaseProvider);
-  final month = ref.watch(activeMonthProvider);
-  return db.transactionsDao.watchExpenseByCategory(
+  final period = ref.watch(selectedPeriodProvider);
+  return db.transactionsDao.watchExpenseByCategoryForRange(
     groupId: groupId,
-    year: month.year,
-    month: month.month,
+    start: period.start,
+    end: period.end,
   );
 }
 

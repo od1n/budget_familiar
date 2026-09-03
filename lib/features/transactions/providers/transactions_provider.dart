@@ -9,6 +9,7 @@ import '../../../data/local/app_database.dart';
 import '../../../../core/services/fcm_service.dart';
 import '../../budgets/providers/budget_alert_provider.dart';
 import '../../family/providers/family_provider.dart';
+import '../../../core/services/exchange_rate_service.dart';
 
 // ── Mapa de id de categoría → nombre legible ──────────────────────────────────
 
@@ -82,6 +83,25 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final userId = supabase.currentUserId;
       final id = existingId ?? const Uuid().v4();
+
+      // Garantizar el equivalente en USD (nunca null): un balance no debe
+      // sumar montos en VES como si fueran dólares.
+      var usdEquiv = amountUsdEquivalent;
+      if (usdEquiv == null) {
+        final rates = _ref.read(vesRatesProvider).valueOrNull;
+        if (currencyCode == 'USD') {
+          usdEquiv = amount;
+        } else if (currencyCode == 'EUR') {
+          // EUR→USD con la tasa paralela del euro (usdPerEur = €paralela/paralela)
+          final usdPerEur = rates?.usdPerEur ?? 0;
+          if (usdPerEur > 0) usdEquiv = amount * usdPerEur;
+        } else {
+          // VES (u otra moneda cotizada en Bs.) → USD con la tasa paralela
+          final rate = rates?.parallel ?? 0;
+          if (rate > 0) usdEquiv = amount / rate;
+        }
+      }
+
       await _db.transactionsDao.upsertTransaction(
         TransactionsTableCompanion(
           id: Value(id),
@@ -93,7 +113,7 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
           date: Value(date),
           categoryId: Value(categoryId),
           description: Value(description),
-          amountUsdEquivalent: Value(amountUsdEquivalent),
+          amountUsdEquivalent: Value(usdEquiv),
           accountId: Value(accountId),
           isSynced: const Value(false),
         ),

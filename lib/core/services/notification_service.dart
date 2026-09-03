@@ -277,7 +277,7 @@ class NotificationService {
       final Map<String, double> expenseByCategory = {};
 
       for (final row in todayRows) {
-        final val = row.amountUsdEquivalent ?? row.amount;
+        final val = row.amountUsdEquivalent ?? (row.currencyCode == 'USD' ? row.amount : 0.0);
         if (row.type == 'income') {
           dayIncome += val;
         } else {

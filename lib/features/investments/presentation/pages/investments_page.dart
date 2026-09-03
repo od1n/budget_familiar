@@ -44,7 +44,7 @@ class InvestmentsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PremiumGate(
-      featureLabel: 'Inversiones',
+      featureLabel: S.of(context).investmentsPageTitle,
       requiredLevel: PlanLevel.family,
       mode: PremiumGateMode.overlay,
       child: Scaffold(
@@ -85,7 +85,7 @@ class _InvestmentsBody extends ConsumerWidget {
 
     return investmentsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => Center(child: Text(S.of(context).errorGenericDetail(e.toString()))),
       data: (investments) {
         if (investments.isEmpty) {
           return _EmptyState(
@@ -306,7 +306,7 @@ class _InvestmentCard extends StatelessWidget {
                     if (inv.maturityDate != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'Vence: ${_dateFmt.format(inv.maturityDate!)}',
+                        S.of(context).maturityLabel(_dateFmt.format(inv.maturityDate!)),
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary,
@@ -520,7 +520,7 @@ class _InvestmentFormState extends ConsumerState<_InvestmentForm> {
                     width: 100,
                     child: DropdownButtonFormField<String>(
                       value: _currency,
-                      decoration: const InputDecoration(labelText: 'Moneda'),
+                      decoration: InputDecoration(labelText: S.of(context).currencyFieldLabel),
                       items: _currencies
                           .map((c) => DropdownMenuItem(
                                 value: c, child: Text(c)))

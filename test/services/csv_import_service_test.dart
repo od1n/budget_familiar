@@ -110,7 +110,7 @@ void main() {
       final result = CsvImportService.mapRows(rows, mapping);
       expect(result.rows, isEmpty);
       expect(result.errors.length, 1);
-      expect(result.errors.first.message, contains('Fecha inválida'));
+      expect(result.errors.first.code, 'invalidDate');
     });
 
     test('error en monto inválido', () {
@@ -119,7 +119,7 @@ void main() {
       ]);
       final result = CsvImportService.mapRows(rows, mapping);
       expect(result.rows, isEmpty);
-      expect(result.errors.first.message, contains('Monto inválido'));
+      expect(result.errors.first.code, 'invalidAmount');
     });
 
     test('fecha vacía reporta error', () {
@@ -127,7 +127,7 @@ void main() {
         ['', 'X', '100'],
       ]);
       final result = CsvImportService.mapRows(rows, mapping);
-      expect(result.errors.first.message, contains('Fecha vacía'));
+      expect(result.errors.first.code, 'emptyDate');
     });
 
     test('filas completamente vacías se ignoran sin error', () {
@@ -214,7 +214,7 @@ void main() {
         ['2024-03-10', 'X', '', ''],
       ]);
       final result = CsvImportService.mapRows(rows, mapping);
-      expect(result.errors.first.message, contains('Débito y crédito vacíos'));
+      expect(result.errors.first.code, 'emptyDebitCredit');
     });
   });
 
@@ -274,7 +274,7 @@ void main() {
           ),
         ],
         errors: [
-          const CsvParseError(rowIndex: 0, message: 'error'),
+          const CsvParseError(rowIndex: 0, code: 'exception', detail: 'error'),
         ],
       );
       expect(result.successCount, 1);

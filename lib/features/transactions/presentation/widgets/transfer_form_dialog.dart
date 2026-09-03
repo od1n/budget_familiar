@@ -12,6 +12,7 @@ import '../../../../core/services/supabase_service.dart';
 import '../../../../data/local/app_database.dart';
 import '../../../family/providers/family_provider.dart';
 import '../../providers/transfer_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 
 /// Abre el diálogo de transferencia interna entre miembros del grupo.
 Future<void> openTransferForm(BuildContext context) async {
@@ -77,7 +78,7 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          const Text('Transferencia interna'),
+          Text(S.of(context).internalTransferTitle),
         ],
       ),
       content: SizedBox(
@@ -87,7 +88,7 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
             height: 80,
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => Text('Error: $e'),
+          error: (e, _) => Text(S.of(context).errorGenericDetail(e.toString())),
           data: (members) {
             final me = _currentMember(members);
             final others = members
@@ -95,15 +96,13 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
                 .toList();
 
             if (me == null) {
-              return const Text(
-                'No se encontró tu perfil en el grupo. '
-                'Recarga la app e intenta de nuevo.',
+              return Text(
+                S.of(context).profileNotFoundError,
               );
             }
             if (others.isEmpty) {
-              return const Text(
-                'Necesitas al menos otro miembro en el grupo '
-                'para registrar una transferencia.',
+              return Text(
+                S.of(context).needAnotherMemberError,
               );
             }
 
@@ -117,7 +116,7 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
                   const _SectionLabel('De'),
                   const SizedBox(height: AppSpacing.xs),
                   _MemberChip(
-                    name: me.displayName ?? me.email ?? 'Tú',
+                    name: me.displayName ?? me.email ?? S.of(context).youLabel,
                     isMe: true,
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -158,7 +157,7 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
                               v?.replaceAll(',', '.') ?? '',
                             );
                             if (parsed == null || parsed <= 0) {
-                              return 'Ingresa un monto válido';
+                              return S.of(context).enterValidAmount;
                             }
                             return null;
                           },
@@ -201,12 +200,12 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
                   const SizedBox(height: AppSpacing.md),
 
                   // Descripción (opcional)
-                  const _SectionLabel('Descripción (opcional)'),
+                  _SectionLabel(S.of(context).descriptionOptionalLabel),
                   const SizedBox(height: AppSpacing.xs),
                   TextFormField(
                     controller: _descCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Ej.: Reembolso cena, cuota alquiler…',
+                    decoration: InputDecoration(
+                      hintText: S.of(context).transferDescHint,
                       isDense: true,
                     ),
                     maxLength: 120,
@@ -220,7 +219,7 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context),
-          child: const Text('Cancelar'),
+          child: Text(S.of(context).cancelButton),
         ),
         FilledButton.icon(
           onPressed: _saving ? null : () => _submit(context),
@@ -231,7 +230,7 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.swap_horiz, size: 18),
-          label: const Text('Registrar'),
+          label: Text(S.of(context).registerButton),
         ),
       ],
     );
@@ -253,7 +252,7 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_receiver == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona el miembro receptor.')),
+        SnackBar(content: Text(S.of(context).selectReceiverError)),
       );
       return;
     }
@@ -283,7 +282,7 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
     final nav = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final receiverName =
-        _receiver!.displayName ?? _receiver!.email ?? 'el miembro';
+        _receiver!.displayName ?? _receiver!.email ?? S.of(context).theMemberFallback;
 
     final ok = await ref.read(transferNotifierProvider.notifier).create(
           senderMember: me,
@@ -303,13 +302,13 @@ class _TransferFormDialogState extends ConsumerState<_TransferFormDialog> {
       nav.pop();
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Transferencia registrada hacia $receiverName.'),
+          content: Text(S.of(context).transferRegistered(receiverName)),
         ),
       );
     } else {
       final err = ref.read(transferNotifierProvider).error;
       messenger.showSnackBar(
-        SnackBar(content: Text('Error: $err')),
+        SnackBar(content: Text(S.of(context).errorGenericDetail(err.toString()))),
       );
     }
   }
@@ -350,7 +349,7 @@ class _MemberChip extends StatelessWidget {
             const Icon(Icons.person, size: 16, color: AppColors.primary),
             const SizedBox(width: 6),
             Text(
-              name + (isMe ? ' (tú)' : ''),
+              isMe ? S.of(context).youSuffix(name) : name,
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
@@ -385,7 +384,7 @@ class _ReceiverSelector extends StatelessWidget {
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
       children: members.map((m) {
-        final name = m.displayName ?? m.email ?? 'Miembro';
+        final name = m.displayName ?? m.email ?? S.of(context).memberLabel;
         final isSelected = selected?.userId == m.userId;
         return GestureDetector(
           onTap: () => onChanged(m),

@@ -6,6 +6,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/utils/category_utils.dart';
 import '../../../../data/local/app_database.dart';
 import '../../providers/categories_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 
 /// Diálogo de creación de categoría personalizada.
 ///
@@ -53,7 +54,7 @@ class _CategoryCreationDialogState
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El nombre no puede estar vacío.')),
+        SnackBar(content: Text(S.of(context).nameEmptyError)),
       );
       return;
     }
@@ -70,8 +71,8 @@ class _CategoryCreationDialogState
       Navigator.of(context).pop(cat);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al crear la categoría. Intenta de nuevo.'),
+        SnackBar(
+          content: Text(S.of(context).categoryCreateError),
           backgroundColor: AppColors.expense,
         ),
       );
@@ -81,7 +82,7 @@ class _CategoryCreationDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Nueva categoría'),
+      title: Text(S.of(context).newCategory),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480, maxHeight: 520),
@@ -95,27 +96,27 @@ class _CategoryCreationDialogState
                 controller: _nameCtrl,
                 autofocus: true,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  hintText: 'Ej: Mascotas, Gimnasio, Farmacia…',
+                decoration: InputDecoration(
+                  labelText: S.of(context).nameLabel,
+                  hintText: S.of(context).categoryNameHint,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
 
               // ── Tipo ──────────────────────────────────────────────────────
-              Text('Tipo', style: Theme.of(context).textTheme.labelMedium),
+              Text(S.of(context).fieldType, style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
                   _TypeChip(
-                    label: 'Gasto',
+                    label: S.of(context).expenseTypeButton,
                     active: _type == 'expense',
                     color: AppColors.expense,
                     onTap: () => setState(() => _type = 'expense'),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   _TypeChip(
-                    label: 'Ingreso',
+                    label: S.of(context).incomeTypeButton,
                     active: _type == 'income',
                     color: AppColors.income,
                     onTap: () => setState(() => _type = 'income'),
@@ -125,7 +126,7 @@ class _CategoryCreationDialogState
               const SizedBox(height: AppSpacing.lg),
 
               // ── Ícono ─────────────────────────────────────────────────────
-              Text('Ícono', style: Theme.of(context).textTheme.labelMedium),
+              Text(S.of(context).iconLabel, style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: AppSpacing.sm),
               Wrap(
                 spacing: AppSpacing.sm,
@@ -162,7 +163,7 @@ class _CategoryCreationDialogState
               const SizedBox(height: AppSpacing.lg),
 
               // ── Color ─────────────────────────────────────────────────────
-              Text('Color', style: Theme.of(context).textTheme.labelMedium),
+              Text(S.of(context).colorLabel, style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: AppSpacing.sm),
               Wrap(
                 spacing: AppSpacing.sm,
@@ -207,7 +208,7 @@ class _CategoryCreationDialogState
               // ── Vista previa ──────────────────────────────────────────────
               _CategoryPreview(
                 name: _nameCtrl.text.trim().isEmpty
-                    ? 'Vista previa'
+                    ? S.of(context).csvStepPreview
                     : _nameCtrl.text.trim(),
                 iconCode: _iconCode,
                 colorHex: _colorHex,
@@ -220,7 +221,7 @@ class _CategoryCreationDialogState
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text(S.of(context).cancelButton),
         ),
         ElevatedButton(
           onPressed: _saving ? null : _save,
@@ -230,7 +231,7 @@ class _CategoryCreationDialogState
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Crear'),
+              : Text(S.of(context).createButton),
         ),
       ],
     );
@@ -297,7 +298,7 @@ class _CategoryPreview extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Así se verá:',
+          S.of(context).previewLabel,
           style: Theme.of(context)
               .textTheme
               .labelSmall

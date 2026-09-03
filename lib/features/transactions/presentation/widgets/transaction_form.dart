@@ -19,6 +19,7 @@ import '../../../settings/providers/ocr_settings_provider.dart';
 import '../../../subscription/presentation/pages/paywall_page.dart';
 import '../../../subscription/providers/subscription_provider.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../dashboard/providers/display_prefs_provider.dart';
 import '../../providers/transactions_provider.dart';
 
 // ── Función de apertura reutilizable ─────────────────────────────────────────
@@ -106,6 +107,9 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       _accountId = tx.accountId;
       _amountCtrl.text = tx.amount.toStringAsFixed(2);
       _descCtrl.text = tx.description ?? '';
+    } else {
+      // Transacción nueva: usar la moneda principal del usuario por defecto.
+      _currency = ref.read(displayPrefsProvider).primaryCurrency;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadCategories());
   }
@@ -132,9 +136,9 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
     final isPremium = ref.read(isPremiumProvider);
     if (!isPremium && !settings.isConfigured) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Configura tu API key en Configuración → OCR de recibos.',
+            S.of(context).ocrConfigPrompt,
           ),
         ),
       );
@@ -153,7 +157,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       if (result.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error OCR: ${result.error}'),
+            content: Text(S.of(context).ocrErrorMsg(result.error ?? '')),
             backgroundColor: AppColors.expense,
           ),
         );
@@ -161,9 +165,9 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       }
       _applyOcrResult(result);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Datos extraídos del recibo. Verifica antes de guardar.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(S.of(context).ocrExtracted),
+          duration: const Duration(seconds: 3),
         ),
       );
     } finally {
@@ -177,8 +181,8 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
         defaultTargetPlatform == TargetPlatform.linux;
 
     if (isDesktop) {
-      const typeGroup = XTypeGroup(
-        label: 'Imágenes',
+      final typeGroup = XTypeGroup(
+        label: S.of(context).imagesLabel,
         extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
       );
       final file = await openFile(acceptedTypeGroups: [typeGroup]);
@@ -201,12 +205,12 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Tomar foto'),
+                title: Text(S.of(context).takePhoto),
                 onTap: () => Navigator.pop(_, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Elegir de galería'),
+                title: Text(S.of(context).chooseFromGallery),
                 onTap: () => Navigator.pop(_, ImageSource.gallery),
               ),
             ],
@@ -237,7 +241,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       }
       if (result.currency != null) {
         final cur = result.currency!.toUpperCase();
-        if (cur == 'USD' || cur == 'VES') _currency = cur;
+        if (cur == 'USD' || cur == 'VES' || cur == 'EUR') _currency = cur;
       }
       if (result.date != null) _date = result.date!;
       if (result.categoryHint != null) {
@@ -266,21 +270,22 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
         _ => null,
       };
 
-  String _hintDisplayName(String hint) => switch (hint.toLowerCase()) {
-        'pharmacy' => 'Farmacia',
-        'gym' => 'Gimnasio',
-        'sport' || 'sports' => 'Deporte',
-        'beauty' => 'Belleza',
-        'travel' => 'Viajes',
-        'hotel' => 'Hospedaje',
-        'fuel' || 'gas' => 'Combustible',
-        'technology' || 'tech' => 'Tecnología',
-        'pets' => 'Mascotas',
-        'gifts' || 'gift' => 'Regalos',
-        'coffee' => 'Café',
-        'bakery' => 'Panadería',
-        'market' => 'Mercado',
-        'hardware' => 'Ferretería',
+  String _hintDisplayName(BuildContext context, String hint) =>
+      switch (hint.toLowerCase()) {
+        'pharmacy' => S.of(context).catPharmacy,
+        'gym' => S.of(context).catGym,
+        'sport' || 'sports' => S.of(context).catSport,
+        'beauty' => S.of(context).catBeauty,
+        'travel' => S.of(context).catTravel,
+        'hotel' => S.of(context).catHotel,
+        'fuel' || 'gas' => S.of(context).catFuel,
+        'technology' || 'tech' => S.of(context).catTechnology,
+        'pets' => S.of(context).catPets,
+        'gifts' || 'gift' => S.of(context).catGifts,
+        'coffee' => S.of(context).catCoffee,
+        'bakery' => S.of(context).catBakery,
+        'market' => S.of(context).catMarket,
+        'hardware' => S.of(context).catHardware,
         _ => hint,
       };
 
@@ -290,7 +295,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
     final cat = await showDialog<CategoriesTableData>(
       context: context,
       builder: (_) => CategoryCreationDialog(
-        initialName: _hintDisplayName(hint),
+        initialName: _hintDisplayName(context, hint),
         initialType: 'expense',
       ),
     );
@@ -398,23 +403,39 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
             ),
             const SizedBox(height: AppSpacing.sm),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(s.currencyInline, style: Theme.of(context).textTheme.bodySmall),
+                Text(s.currencyInline,
+                    style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(width: AppSpacing.sm),
-                TxTypeBtn(
-                  label: 'USD',
-                  icon: Icons.attach_money,
-                  active: _currency == 'USD',
-                  color: AppColors.primary,
-                  onTap: () => setState(() => _currency = 'USD'),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                TxTypeBtn(
-                  label: 'VES',
-                  icon: Icons.money,
-                  active: _currency == 'VES',
-                  color: AppColors.primary,
-                  onTap: () => setState(() => _currency = 'VES'),
+                Expanded(
+                  child: Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      TxTypeBtn(
+                        label: 'USD',
+                        icon: Icons.attach_money,
+                        active: _currency == 'USD',
+                        color: AppColors.primary,
+                        onTap: () => setState(() => _currency = 'USD'),
+                      ),
+                      TxTypeBtn(
+                        label: 'VES',
+                        icon: Icons.money,
+                        active: _currency == 'VES',
+                        color: AppColors.primary,
+                        onTap: () => setState(() => _currency = 'VES'),
+                      ),
+                      TxTypeBtn(
+                        label: 'EUR',
+                        icon: Icons.euro,
+                        active: _currency == 'EUR',
+                        color: AppColors.primary,
+                        onTap: () => setState(() => _currency = 'EUR'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -510,7 +531,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            cat.name,
+                            categoryDisplayName(context, cat.id, cat.name),
                             style: TextStyle(
                               fontSize: 12,
                               color: sel ? Colors.white : color,
@@ -551,7 +572,8 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Crear "${_hintDisplayName(_ocrCategoryHint!)}"',
+                          S.of(context)
+                              .createCategoryQuoted(_hintDisplayName(context, _ocrCategoryHint!)),
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.primary,
@@ -614,6 +636,10 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
         final rate = _rateType == 'bcv' ? rates.bcv : rates.parallel;
         if (rate > 0) usdEquiv = amount / rate;
       }
+    } else if (_currency == 'EUR') {
+      final rates = ref.read(vesRatesProvider).valueOrNull;
+      final usdPerEur = rates?.usdPerEur ?? 0; // forex real EUR/USD
+      if (usdPerEur > 0) usdEquiv = amount * usdPerEur;
     } else {
       usdEquiv = amount;
     }
@@ -666,9 +692,9 @@ class _AccountPicker extends ConsumerWidget {
             DropdownButtonFormField<String>(
               initialValue: selectedId,
               isExpanded: true,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Sin cuenta asociada',
+                hintText: S.of(context).noAccountOption,
               ),
               items: [
                 DropdownMenuItem<String>(
@@ -859,22 +885,31 @@ class VesRateBanner extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              // Wrap: si no cabe en una línea, baja a la siguiente en vez de
+              // cortar el texto (evita overflow en pantallas angostas).
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSpacing.md,
+                runSpacing: 4,
                 children: [
-                  const Icon(
-                    Icons.currency_exchange,
-                    size: 13,
-                    color: AppColors.primary,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.currency_exchange,
+                        size: 13,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'BCV: Bs. ${fmt.format(rates.bcv)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'BCV: Bs. ${fmt.format(rates.bcv)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
                   Text(
                     '${S.of(context).rateParallel}: Bs. ${fmt.format(rates.parallel)}',
                     style: const TextStyle(
@@ -882,9 +917,8 @@ class VesRateBanner extends ConsumerWidget {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const Spacer(),
                   Text(
-                    'Actualizado ${_fmtTimeAgo(rates.updatedAt)}',
+                    S.of(context).rateUpdated(_fmtTimeAgo(rates.updatedAt)),
                     style: const TextStyle(
                       fontSize: 10,
                       color: AppColors.textDisabled,
@@ -893,28 +927,28 @@ class VesRateBanner extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-              Row(
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSpacing.sm,
+                runSpacing: 4,
                 children: [
-                  const Text(
-                    'Usar tasa:',
-                    style: TextStyle(
+                  Text(
+                    S.of(context).rateUseLabel,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
                   _RateToggleChip(
                     label: 'BCV',
                     active: rateType == 'bcv',
                     onTap: () => onRateTypeChanged('bcv'),
                   ),
-                  const SizedBox(width: 4),
                   _RateToggleChip(
                     label: S.of(context).rateParallel,
                     active: rateType == 'parallel',
                     onTap: () => onRateTypeChanged('parallel'),
                   ),
-                  const Spacer(),
                   Builder(
                     builder: (ctx) {
                       final rate =

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../dashboard/providers/display_prefs_provider.dart';
 import '../../../../core/services/backup_service.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/services/realtime_service.dart';
@@ -38,6 +39,8 @@ class SettingsPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: const [
+          _CurrencySection(),
+          SizedBox(height: AppSpacing.x2l),
           _OcrSection(),
           SizedBox(height: AppSpacing.x2l),
           _ThemeSection(),
@@ -53,6 +56,78 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ── Sección Moneda principal ──────────────────────────────────────────────────
+
+class _CurrencySection extends ConsumerWidget {
+  const _CurrencySection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(displayPrefsProvider);
+    final s = S.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          icon: Icons.payments_outlined,
+          title: s.primaryCurrencyTitle,
+          subtitle: s.primaryCurrencySubtitle,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Card(
+          child: Column(
+            children: [
+              _CurrencyTile(
+                label: 'USD — Dólar',
+                code: 'USD',
+                selected: prefs.primaryCurrency == 'USD',
+                onTap: () => ref
+                    .read(displayPrefsProvider.notifier)
+                    .setPrimaryCurrency('USD'),
+              ),
+              const Divider(height: 1, indent: AppSpacing.lg),
+              _CurrencyTile(
+                label: 'EUR — Euro',
+                code: 'EUR',
+                selected: prefs.primaryCurrency == 'EUR',
+                onTap: () => ref
+                    .read(displayPrefsProvider.notifier)
+                    .setPrimaryCurrency('EUR'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CurrencyTile extends StatelessWidget {
+  const _CurrencyTile({
+    required this.label,
+    required this.code,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final String code;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+        leading: Icon(
+          code == 'EUR' ? Icons.euro : Icons.attach_money,
+          color: selected ? AppColors.primary : AppColors.textSecondary,
+        ),
+        title: Text(label),
+        trailing: selected
+            ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20)
+            : null,
+        onTap: onTap,
+      );
 }
 
 // ── Sección OCR ───────────────────────────────────────────────────────────────
@@ -103,13 +178,13 @@ class _OcrSectionState extends ConsumerState<_OcrSection> {
         _SectionHeader(
           icon: Icons.document_scanner_outlined,
           title: S.of(context).ocrSectionTitle,
-          subtitle: 'Extrae datos automáticamente al fotografiar un recibo.',
+          subtitle: S.of(context).ocrSectionSubtitle,
         ),
         const SizedBox(height: AppSpacing.lg),
 
         // ── Selector de backend ───────────────────────────────────────────────
         Text(
-          'Motor OCR',
+          S.of(context).ocrEngineLabel,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
@@ -185,22 +260,18 @@ class _OcrSectionState extends ConsumerState<_OcrSection> {
       final proceed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Advertencia'),
-          content: const Text(
-            'Estás usando "localhost" con Ollama en un dispositivo móvil.\n\n'
-            '"localhost" apunta al propio teléfono — Ollama no está instalado '
-            'aquí, por lo que el OCR fallará.\n\n'
-            'Usa la IP de tu PC/servidor en la misma red, por ejemplo: '
-            'http://192.168.1.X:11434',
+          title: Text(S.of(context).ollamaWarningTitle),
+          content: Text(
+            S.of(context).ollamaMobileWarningDialog,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Corregir'),
+              child: Text(S.of(context).fixButton),
             ),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Guardar igual'),
+              child: Text(S.of(context).saveAnywayButton),
             ),
           ],
         ),
@@ -249,23 +320,23 @@ class _BackendSelector extends StatelessWidget {
       (
         OcrBackend.gemini,
         'Gemini',
-        'Gratis · Recomendado',
+        S.of(context).backendGeminiSubtitle,
         Icons.auto_awesome_outlined,
         null, // sin badge
       ),
       (
         OcrBackend.claude,
         'Claude API',
-        'Pago · Alta calidad',
+        S.of(context).backendClaudeSubtitle,
         Icons.psychology_outlined,
         null,
       ),
       (
         OcrBackend.ollama,
         'Ollama',
-        isMobile ? 'Requiere servidor remoto' : 'Local · Sin internet',
+        isMobile ? S.of(context).backendOllamaSubtitleMobile : S.of(context).backendOllamaSubtitleDesktop,
         Icons.computer_outlined,
-        isMobile ? '¡Atención!' : null,
+        isMobile ? S.of(context).backendOllamaBadge : null,
       ),
     ];
 
@@ -384,9 +455,9 @@ class _GeminiFields extends StatelessWidget {
             controller: ctrl,
             obscureText: obscure,
             decoration: InputDecoration(
-              labelText: 'Gemini API Key',
+              labelText: S.of(context).geminiApiKeyLabel,
               hintText: 'AIza...',
-              helperText: 'Obtén tu key gratuita en aistudio.google.com/apikey',
+              helperText: S.of(context).geminiKeyHelper,
               suffixIcon: IconButton(
                 icon: Icon(
                   obscure
@@ -398,12 +469,11 @@ class _GeminiFields extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          const _InfoBanner(
+          _InfoBanner(
             icon: Icons.info_outline,
             color: AppColors.primary,
             bgColor: AppColors.primaryLight,
-            text: 'Free tier: 15 solicitudes/min · 1 500 solicitudes/día · '
-                'sin tarjeta de crédito requerida.',
+            text: S.of(context).geminiFreeTierInfo,
           ),
         ],
       );
@@ -428,9 +498,9 @@ class _ClaudeFields extends StatelessWidget {
         controller: ctrl,
         obscureText: obscure,
         decoration: InputDecoration(
-          labelText: 'Claude API Key',
+          labelText: S.of(context).claudeApiKeyLabel,
           hintText: 'sk-ant-...',
-          helperText: 'La clave se guarda solo en este dispositivo.',
+          helperText: S.of(context).claudeKeyHelper,
           suffixIcon: IconButton(
             icon: Icon(
               obscure
@@ -462,31 +532,29 @@ class _OllamaFields extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showMobileWarning) ...[
-            const _InfoBanner(
+            _InfoBanner(
               icon: Icons.warning_amber_outlined,
               color: AppColors.warning,
               bgColor: AppColors.warningLight,
-              text: '"localhost" no funciona en dispositivos móviles — '
-                  'apunta al teléfono, no a tu PC. '
-                  'Usa la IP de tu servidor: http://192.168.1.X:11434',
+              text: S.of(context).ollamaMobileWarningBanner,
             ),
             const SizedBox(height: AppSpacing.md),
           ],
           TextField(
             controller: urlCtrl,
-            decoration: const InputDecoration(
-              labelText: 'URL de Ollama',
+            decoration: InputDecoration(
+              labelText: S.of(context).ollamaUrlLabel,
               hintText: 'http://localhost:11434',
-              helperText: 'En móvil usa la IP de tu servidor en la misma red.',
+              helperText: S.of(context).ollamaUrlHelper,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
           TextField(
             controller: modelCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Modelo',
+            decoration: InputDecoration(
+              labelText: S.of(context).modelLabel,
               hintText: 'gemma4:31b-cloud',
-              helperText: 'Debe ser un modelo con soporte de visión (multimodal).',
+              helperText: S.of(context).ollamaModelHelper,
             ),
           ),
         ],
@@ -614,7 +682,7 @@ class _SubscriptionSection extends ConsumerWidget {
               sub.isActive ? Icons.check_circle_rounded : Icons.star_outline,
               color: sub.isActive ? AppColors.income : AppColors.primary,
             ),
-            title: Text('Plan ${sub.planLabel}'),
+            title: Text(S.of(context).planLabelPrefix(sub.planLabel)),
             subtitle: Text(
               sub.isActive ? S.of(context).planActive : S.of(context).planUpgradePrompt,
             ),
@@ -691,7 +759,7 @@ class _BackupSection extends ConsumerWidget {
                 onPressed: () async {
                   final bio = ref.read(biometricServiceProvider);
                   final ok = await bio.authenticate(
-                    reason: 'Confirma tu identidad para exportar los datos',
+                    reason: S.of(context).biometricExportReason,
                   );
                   if (!ok || !context.mounted) return;
                   final db = ref.read(appDatabaseProvider);
@@ -712,7 +780,7 @@ class _BackupSection extends ConsumerWidget {
                 onPressed: () async {
                   final bio = ref.read(biometricServiceProvider);
                   final ok = await bio.authenticate(
-                    reason: 'Confirma tu identidad para importar datos',
+                    reason: S.of(context).biometricImportReason,
                   );
                   if (!ok || !context.mounted) return;
                   final db = ref.read(appDatabaseProvider);
@@ -745,8 +813,8 @@ class _AboutSection extends ConsumerWidget {
 
     final (statusText, statusColor) = realtimeStatus.when(
       data: (s) => (s.label, _statusColor(s)),
-      loading: () => ('Conectando…', AppColors.textDisabled),
-      error: (_, __) => ('Error', AppColors.expense),
+      loading: () => (S.of(context).statusConnecting, AppColors.textDisabled),
+      error: (_, __) => (S.of(context).errorLabel, AppColors.expense),
     );
 
     return Column(
@@ -944,9 +1012,9 @@ class _AccountSectionState extends ConsumerState<_AccountSection> {
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(
+          _SectionHeader(
             icon: Icons.manage_accounts_outlined,
-            title: 'Cuenta',
+            title: S.of(context).accountLabel,
             subtitle: null,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -982,7 +1050,7 @@ class _AccountSectionState extends ConsumerState<_AccountSection> {
                             )
                           : const Icon(Icons.delete_forever_outlined),
                       label: Text(
-                        _deleting ? 'Eliminando cuenta…' : S.of(context).deleteAccountButton,
+                        _deleting ? S.of(context).deletingAccount : S.of(context).deleteAccountButton,
                       ),
                     ),
                   ),
@@ -1029,19 +1097,19 @@ class _AccountSectionState extends ConsumerState<_AccountSection> {
       if (e.code == 'owner_with_members') {
         _showError(
           context,
-          'Transfiere la administración',
+          S.of(context).transferAdminTitle,
           e.message,
         );
       } else {
-        _showError(context, 'Error', e.message);
+        _showError(context, S.of(context).errorLabel, e.message);
       }
     } catch (_) {
       if (!mounted) return;
       setState(() => _deleting = false);
       _showError(
         context,
-        'Error inesperado',
-        'No se pudo eliminar la cuenta. Verifica tu conexión e intenta de nuevo.',
+        S.of(context).errorUnexpectedTitle,
+        S.of(context).deleteAccountFailedMessage,
       );
     }
   }
@@ -1076,13 +1144,11 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
   final _ctrl = TextEditingController();
   bool _canConfirm = false;
 
-  static const _confirmWord = 'ELIMINAR';
-
   @override
   void initState() {
     super.initState();
     _ctrl.addListener(() {
-      final ok = _ctrl.text.trim() == _confirmWord;
+      final ok = _ctrl.text.trim() == S.of(context).deleteConfirmWord;
       if (ok != _canConfirm) setState(() => _canConfirm = ok);
     });
   }
@@ -1100,9 +1166,8 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Esta acción eliminará permanentemente tu cuenta y todos tus datos. '
-              'No podrás recuperarlos.',
+            Text(
+              S.of(context).deleteAccountIrreversibleBody,
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
@@ -1117,7 +1182,7 @@ class _DeleteConfirmDialogState extends State<_DeleteConfirmDialog> {
               autofocus: true,
               textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
-                hintText: _confirmWord,
+                hintText: S.of(context).deleteConfirmWord,
                 errorText: _ctrl.text.isNotEmpty && !_canConfirm
                     ? S.of(context).deleteAccountTypeError
                     : null,

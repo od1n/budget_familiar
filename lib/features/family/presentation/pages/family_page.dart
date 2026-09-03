@@ -16,8 +16,6 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../categories/presentation/dialogs/category_creation_dialog.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../categories/providers/categories_provider.dart';
-import '../../../subscription/presentation/pages/paywall_page.dart';
-import '../../../subscription/providers/subscription_provider.dart';
 import '../../../../core/services/referral_service.dart';
 import '../../providers/family_provider.dart';
 
@@ -48,7 +46,7 @@ class FamilyPage extends ConsumerWidget {
 
           // ── Referidos ───────────────────────────────────────────────────────
           Text(
-            'Referidos',
+            S.of(context).referralsTitle,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -70,8 +68,8 @@ class FamilyPage extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.settings_outlined, color: AppColors.primary),
-              title: const Text('Ajustes de la aplicación'),
-              subtitle: const Text('OCR, moneda, notificaciones y más'),
+              title: Text(S.of(context).appSettingsTitle),
+              subtitle: Text(S.of(context).appSettingsSubtitle),
               trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
               onTap: () => context.push(AppRoutes.settings),
             ),
@@ -79,7 +77,7 @@ class FamilyPage extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // ── Cuenta ────────────────────────────────────────────────────────
-          Text('Cuenta', style: Theme.of(context).textTheme.titleMedium),
+          Text(S.of(context).accountLabel, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: AppSpacing.sm),
           Card(
             child: ListTile(
@@ -161,7 +159,7 @@ class _FamilyGroupCard extends ConsumerWidget {
       error: (e, _) => Card(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Text('Error: $e'),
+          child: Text(S.of(context).errorGenericDetail(e.toString())),
         ),
       ),
       data: (group) {
@@ -214,7 +212,7 @@ class _NoGroupCardState extends ConsumerState<_NoGroupCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al unirse: $e')),
+          SnackBar(content: Text(S.of(context).errorJoin(e.toString()))),
         );
       }
     }
@@ -272,17 +270,10 @@ class _NoGroupCardState extends ConsumerState<_NoGroupCard> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  if (!ref.read(isPremiumProvider)) {
-                    Navigator.of(context, rootNavigator: true).push<void>(
-                      MaterialPageRoute(
-                        builder: (_) => const PaywallPage(),
-                      ),
-                    );
-                    return;
-                  }
-                  _showJoinDialog(context, ref);
-                },
+                // Unirse a un grupo NO requiere plan de pago: el servidor
+                // (join_group_by_invite) solo valida el límite de miembros del
+                // grupo, que depende del plan del DUEÑO. Modelo familiar estándar.
+                onPressed: () => _showJoinDialog(context, ref),
                 icon: const Icon(Icons.link, size: 18),
                 label: Text(S.of(context).joinWithCode),
               ),
@@ -344,7 +335,7 @@ class _NoGroupCardState extends ConsumerState<_NoGroupCard> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear grupo: $e')),
+          SnackBar(content: Text(S.of(context).errorCreateGroup(e.toString()))),
         );
       }
     }
@@ -359,7 +350,7 @@ class _NoGroupCardState extends ConsumerState<_NoGroupCard> {
         content: TextField(
           controller: ctrl,
           textCapitalization: TextCapitalization.characters,
-          maxLength: 8,
+          maxLength: 12, // los invite_code son de 12 caracteres (migración 009)
           decoration: InputDecoration(
             labelText: S.of(context).inviteCodeLabel,
             hintText: S.of(context).inviteCodeHint,
@@ -367,7 +358,7 @@ class _NoGroupCardState extends ConsumerState<_NoGroupCard> {
           ),
           autofocus: true,
           onSubmitted: (v) {
-            if (v.trim().length == 8) Navigator.pop(dialogContext, v.trim());
+            if (v.trim().isNotEmpty) Navigator.pop(dialogContext, v.trim());
           },
         ),
         actions: [
@@ -403,7 +394,7 @@ class _NoGroupCardState extends ConsumerState<_NoGroupCard> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al unirse: $e')),
+          SnackBar(content: Text(S.of(context).errorJoin(e.toString()))),
         );
       }
     }
@@ -516,11 +507,11 @@ class _ActiveGroupCard extends ConsumerWidget {
                     final link = buildInviteLink(group.inviteCode);
                     // ignore: deprecated_member_use
                     Share.share(
-                      'Únete a mi grupo familiar "${group.name}" '
-                      'en Budget Familiar.\n\n'
-                      '1. Descarga la app: https://play.google.com/store/apps/details?id=com.budgetfamiliar.app\n'
-                      '2. Crea tu cuenta e ingresa el código: ${group.inviteCode}\n\n'
-                      'O si ya tienes la app, abre este enlace: $link',
+                      S.of(context).shareInviteMessage(
+                        group.name,
+                        group.inviteCode,
+                        link,
+                      ),
                     );
                   },
                   icon: const Icon(Icons.share_outlined, size: 18),
@@ -541,7 +532,7 @@ class _ActiveGroupCard extends ConsumerWidget {
                 child: LinearProgressIndicator(),
               ),
               error: (e, _) => Text(
-                'Error cargando miembros: $e',
+                S.of(context).errorLoadMembers(e.toString()),
                 style: const TextStyle(color: AppColors.expense, fontSize: 12),
               ),
               data: (members) => Column(
@@ -734,7 +725,7 @@ class _ActiveGroupCard extends ConsumerWidget {
           SnackBar(
             content: Text(
               S.of(context).adminTransferred(
-                selected!.displayName ?? selected!.email ?? 'nuevo admin',
+                selected!.displayName ?? selected!.email ?? S.of(context).newAdminFallback,
               ),
             ),
           ),
@@ -743,7 +734,7 @@ class _ActiveGroupCard extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al transferir: $e')),
+          SnackBar(content: Text(S.of(context).errorTransfer(e.toString()))),
         );
       }
     }
@@ -757,9 +748,8 @@ class _ActiveGroupCard extends ConsumerWidget {
         title: Text(S.of(context).leaveGroupTitle),
         content: Text(
           isOwner
-              ? 'Eres el administrador. Si sales y eres el único miembro, '
-                  'el grupo se eliminará permanentemente. ¿Confirmas?'
-              : '¿Confirmas que deseas salir del grupo "${group.name}"?',
+              ? S.of(context).leaveGroupAdminWarning
+              : S.of(context).leaveGroupConfirmNamed(group.name),
         ),
         actions: [
           TextButton(
@@ -789,7 +779,7 @@ class _ActiveGroupCard extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text(S.of(context).errorGenericDetail(e.toString()))),
         );
       }
     }
@@ -833,7 +823,7 @@ class _MemberTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isCurrentUser ? '$display (tú)' : display,
+                  isCurrentUser ? S.of(context).youSuffix(display) : display,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 if (member.email != null && member.displayName != null)
@@ -907,7 +897,7 @@ class _CustomCategoriesCard extends ConsumerWidget {
                 ),
               ),
               error: (e, _) => Text(
-                'Error: $e',
+                S.of(context).errorGenericDetail(e.toString()),
                 style: const TextStyle(color: AppColors.expense),
               ),
               data: (cats) {
@@ -965,8 +955,7 @@ class _CustomCategoriesCard extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: Text(S.of(context).deleteCategoryTitle),
         content: Text(
-          'Se ocultará "${cat.name}". Las transacciones ya registradas '
-          'con esta categoría no se verán afectadas.',
+          S.of(context).hideCategoryWarning(categoryDisplayName(context, cat.id, cat.name)),
         ),
         actions: [
           TextButton(
@@ -1019,7 +1008,7 @@ class _CustomCategoryTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  cat.name,
+                  categoryDisplayName(context, cat.id, cat.name),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 Text(
@@ -1088,11 +1077,11 @@ class _ReferralCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Invita amigos y gana',
+                        S.of(context).referralInviteTitle,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       Text(
-                        'Invita a ${service.requiredReferrals} personas y obtiene 1 mes gratis',
+                        S.of(context).referralInviteBody(service.requiredReferrals),
                         style: Theme.of(context)
                             .textTheme
                             .bodySmall
@@ -1119,7 +1108,7 @@ class _ReferralCard extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '$count / ${service.requiredReferrals} referidos',
+                          S.of(context).referralProgress(count, service.requiredReferrals),
                           style: Theme.of(context)
                               .textTheme
                               .bodyMedium
@@ -1135,8 +1124,8 @@ class _ReferralCard extends ConsumerWidget {
                               color: AppColors.income.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
-                              'Meta alcanzada',
+                            child: Text(
+                              S.of(context).goalReached,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -1181,16 +1170,16 @@ class _ReferralCard extends ConsumerWidget {
                           ref.invalidate(referralCountProvider);
                           ref.invalidate(hasEarnedFreeMonthProvider);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                'Mes gratis activado. Gracias por compartir.',
+                                S.of(context).freeMonthActivated,
                               ),
                             ),
                           );
                         }
                       },
                       icon: const Icon(Icons.redeem, size: 18),
-                      label: const Text('Canjear mes gratis'),
+                      label: Text(S.of(context).redeemFreeMonth),
                     ),
                   ),
                 );
@@ -1201,7 +1190,7 @@ class _ReferralCard extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               // TODO: wire actual referral tracking server-side
-              'El conteo se actualizará cuando implementemos el tracking server-side.',
+              S.of(context).referralTrackingNote,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textDisabled,
                     fontStyle: FontStyle.italic,
@@ -1323,7 +1312,7 @@ class _ProfileCard extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al actualizar: $e')),
+          SnackBar(content: Text(S.of(context).errorUpdate(e.toString()))),
         );
       }
     }

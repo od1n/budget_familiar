@@ -46,6 +46,23 @@ async function fetchNews(): Promise<Array<{ title: string; url: string; source: 
   }
 }
 
+// ── Tasas VES (fuente directa, no depende de que la tabla esté poblada) ───────
+async function fetchVesRates(): Promise<{ bcv: number | null; parallel: number | null }> {
+  try {
+    const res = await fetch('https://ve.dolarapi.com/v1/dolares', {
+      signal: AbortSignal.timeout(4000),
+    })
+    if (!res.ok) return { bcv: null, parallel: null }
+    const data = (await res.json()) as Array<{ fuente?: string; promedio?: number }>
+    // Discriminar por `fuente` ('oficial' | 'paralelo'); el oficial trae nombre "Dólar".
+    const bcv = data.find((d) => d.fuente === 'oficial')?.promedio ?? null
+    const parallel = data.find((d) => d.fuente === 'paralelo')?.promedio ?? null
+    return { bcv, parallel }
+  } catch {
+    return { bcv: null, parallel: null } // no bloquear si la API falla
+  }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -191,15 +208,21 @@ Deno.serve(async (req) => {
       .eq('is_active', true)
     const investments = (invRaw ?? []) as Array<{ name: string; type: string; initial_amount: number; current_value: number | null; currency_code: string }>
 
-    // Tasas de cambio más recientes
-    const { data: ratesRaw } = await adminClient
-      .from('exchange_rates')
-      .select('from_currency, to_currency, rate, rate_type, valid_at')
-      .order('valid_at', { ascending: false })
-      .limit(10)
-    const rates = (ratesRaw ?? []) as Array<{ from_currency: string; to_currency: string; rate: number; rate_type: string; valid_at: string }>
-    const bcvRate = rates.find((r) => r.from_currency === 'USD' && r.to_currency === 'VES' && r.rate_type === 'official')?.rate ?? null
-    const parallelRate = rates.find((r) => r.from_currency === 'USD' && r.to_currency === 'VES' && r.rate_type === 'parallel')?.rate ?? null
+    // Tasas de cambio: en vivo desde la API pública; la tabla exchange_rates
+    // queda solo como respaldo (hoy no la puebla nada).
+    const live = await fetchVesRates()
+    let bcvRate = live.bcv
+    let parallelRate = live.parallel
+    if (bcvRate === null || parallelRate === null) {
+      const { data: ratesRaw } = await adminClient
+        .from('exchange_rates')
+        .select('from_currency, to_currency, rate, rate_type, valid_at')
+        .order('valid_at', { ascending: false })
+        .limit(10)
+      const rates = (ratesRaw ?? []) as Array<{ from_currency: string; to_currency: string; rate: number; rate_type: string; valid_at: string }>
+      bcvRate ??= rates.find((r) => r.from_currency === 'USD' && r.to_currency === 'VES' && r.rate_type === 'official')?.rate ?? null
+      parallelRate ??= rates.find((r) => r.from_currency === 'USD' && r.to_currency === 'VES' && r.rate_type === 'parallel')?.rate ?? null
+    }
 
     // Noticias (GDELT, opcional)
     const news = await fetchNews()

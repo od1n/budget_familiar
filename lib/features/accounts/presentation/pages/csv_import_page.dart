@@ -9,6 +9,7 @@ import '../../../../core/services/csv_import_service.dart';
 import '../../../../core/utils/category_utils.dart';
 import '../../../transactions/providers/transactions_provider.dart';
 import '../../providers/accounts_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,21 @@ const _kDelimiters = [
   (';', 'Punto y coma  ;'),
   ('\t', 'Tabulador  ⇥'),
 ];
+
+String _csvErrMsg(BuildContext context, CsvParseError e) => switch (e.code) {
+      'emptyDate' => S.of(context).csvErrEmptyDate,
+      'invalidDate' => S.of(context).csvErrInvalidDate(e.detail ?? ''),
+      'invalidAmount' => S.of(context).csvErrInvalidAmount(e.detail ?? ''),
+      'emptyDebitCredit' => S.of(context).csvErrEmptyDebitCredit,
+      _ => e.detail ?? e.code,
+    };
+
+String _delimLabel(BuildContext context, String v) => switch (v) {
+      ',' => S.of(context).csvDelimComma,
+      ';' => S.of(context).csvDelimSemicolon,
+      '\t' => S.of(context).csvDelimTab,
+      _ => v,
+    };
 
 const _kCurrencies = ['USD', 'VES', 'EUR', 'COP'];
 
@@ -108,7 +124,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
     return List.generate(_headerRow.length, (i) {
       final label = _skipFirstRow
           ? '${i + 1}: ${_headerRow[i]}'
-          : 'Columna ${i + 1}';
+          : S.of(context).csvColumnN(i + 1);
       return DropdownMenuItem(value: i, child: Text(label));
     });
   }
@@ -179,7 +195,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Importar CSV bancario'),
+        title: Text(S.of(context).csvImportTitle),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -213,25 +229,25 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         onCancel: details.currentStep > 0
             ? () => setState(() => _step = details.currentStep - 1)
             : null,
-        continueLabel: details.currentStep == 2 ? 'Importar' : 'Siguiente',
-        cancelLabel: 'Atrás',
+        continueLabel: details.currentStep == 2 ? S.of(context).csvImportAction : S.of(context).nextButton,
+        cancelLabel: S.of(context).backButton,
         importing: _importing,
       ),
       steps: [
         Step(
-          title: const Text('Archivo y cuenta'),
+          title: Text(S.of(context).csvStepFile),
           isActive: _step >= 0,
           state: _step > 0 ? StepState.complete : StepState.indexed,
           content: _buildStep1(),
         ),
         Step(
-          title: const Text('Mapeo de columnas'),
+          title: Text(S.of(context).csvStepMapping),
           isActive: _step >= 1,
           state: _step > 1 ? StepState.complete : StepState.indexed,
           content: _buildStep2(),
         ),
         Step(
-          title: const Text('Vista previa'),
+          title: Text(S.of(context).csvStepPreview),
           isActive: _step >= 2,
           state: StepState.indexed,
           content: _buildStep3(),
@@ -253,13 +269,13 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           onPressed: _pickFile,
           icon: const Icon(Icons.upload_file_outlined, size: 18),
           label: Text(
-            _filePath ?? 'Seleccionar archivo CSV…',
+            _filePath ?? S.of(context).csvSelectFile,
           ),
         ),
         if (_filePath != null) ...[
           const SizedBox(height: AppSpacing.sm),
           Text(
-            '${_rawRows.length} filas detectadas',
+            S.of(context).csvRowsDetected(_rawRows.length),
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -271,15 +287,15 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         // Delimitador
         DropdownButtonFormField<String>(
           initialValue: _delimiter,
-          decoration: const InputDecoration(
-            labelText: 'Delimitador',
+          decoration: InputDecoration(
+            labelText: S.of(context).csvDelimiter,
             isDense: true,
           ),
           items: _kDelimiters
               .map(
                 (d) => DropdownMenuItem(
                   value: d.$1,
-                  child: Text(d.$2),
+                  child: Text(_delimLabel(context, d.$1)),
                 ),
               )
               .toList(),
@@ -293,11 +309,11 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         accountsAsync.when(
           loading: () => const LinearProgressIndicator(),
           error: (_, __) =>
-              const Text('Error cargando cuentas'),
+              Text(S.of(context).csvErrorLoadAccounts),
           data: (accounts) {
             if (accounts.isEmpty) {
-              return const Text(
-                'Crea una cuenta primero para asociar las transacciones.',
+              return Text(
+                S.of(context).csvCreateAccountFirst,
                 style: TextStyle(color: AppColors.textSecondary),
               );
             }
@@ -305,8 +321,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
             _selectedAccountId ??= widget.preselectedAccountId;
             return DropdownButtonFormField<String>(
               initialValue: _selectedAccountId,
-              decoration: const InputDecoration(
-                labelText: 'Cuenta destino',
+              decoration: InputDecoration(
+                labelText: S.of(context).csvTargetAccount,
                 isDense: true,
               ),
               items: accounts
@@ -337,8 +353,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         // Moneda
         DropdownButtonFormField<String>(
           initialValue: _currency,
-          decoration: const InputDecoration(
-            labelText: 'Moneda del CSV',
+          decoration: InputDecoration(
+            labelText: S.of(context).csvCurrency,
             isDense: true,
           ),
           items: _kCurrencies
@@ -365,7 +381,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
 
   Widget _buildStep2() {
     if (_rawRows.isEmpty) {
-      return const Text('Carga un archivo primero.');
+      return Text(S.of(context).csvLoadFileFirst);
     }
     final items = _colItems();
 
@@ -376,7 +392,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         SwitchListTile(
           value: _skipFirstRow,
           onChanged: (v) => setState(() => _skipFirstRow = v),
-          title: const Text('Primera fila es encabezado'),
+          title: Text(S.of(context).csvFirstRowHeader),
           dense: true,
           contentPadding: EdgeInsets.zero,
         ),
@@ -386,8 +402,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         DropdownButtonFormField<int>(
           initialValue: _dateCol,
           isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Columna de fecha',
+          decoration: InputDecoration(
+            labelText: S.of(context).csvDateColumn,
             isDense: true,
           ),
           items: items,
@@ -401,8 +417,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         DropdownButtonFormField<String>(
           initialValue: _dateFormat,
           isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Formato de fecha',
+          decoration: InputDecoration(
+            labelText: S.of(context).csvDateFormat,
             isDense: true,
           ),
           items: kDateFormats
@@ -423,8 +439,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         DropdownButtonFormField<int>(
           initialValue: _descCol,
           isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Columna de descripción',
+          decoration: InputDecoration(
+            labelText: S.of(context).csvDescColumn,
             isDense: true,
           ),
           items: items,
@@ -435,21 +451,21 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         const SizedBox(height: AppSpacing.md),
 
         // Modo de monto
-        const Text(
-          'Columnas de monto',
+        Text(
+          S.of(context).csvAmountColumns,
           style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.xs),
         SegmentedButton<bool>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: false,
-              label: Text('Monto único'),
+              label: Text(S.of(context).csvSingleAmount),
               icon: Icon(Icons.attach_money, size: 16),
             ),
             ButtonSegment(
               value: true,
-              label: Text('Débito / Crédito'),
+              label: Text(S.of(context).csvDebitCredit),
               icon: Icon(Icons.compare_arrows, size: 16),
             ),
           ],
@@ -466,8 +482,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           DropdownButtonFormField<int>(
             initialValue: _amountCol,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Columna de monto (+ ingreso / − gasto)',
+            decoration: InputDecoration(
+              labelText: S.of(context).csvAmountColumnHint,
               isDense: true,
             ),
             items: items,
@@ -479,8 +495,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           DropdownButtonFormField<int>(
             initialValue: _debitCol,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Columna débito (gasto)',
+            decoration: InputDecoration(
+              labelText: S.of(context).csvDebitColumn,
               isDense: true,
             ),
             items: items,
@@ -492,8 +508,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           DropdownButtonFormField<int>(
             initialValue: _creditCol,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Columna crédito (ingreso)',
+            decoration: InputDecoration(
+              labelText: S.of(context).csvCreditColumn,
               isDense: true,
             ),
             items: items,
@@ -511,7 +527,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
   Widget _buildStep3() {
     final result = _importResult;
     if (result == null) {
-      return const Text('Vuelve al paso anterior y pulsa Siguiente.');
+      return Text(S.of(context).csvGoBackHint);
     }
 
     return Column(
@@ -521,13 +537,13 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         Row(
           children: [
             _SummaryChip(
-              label: '${result.successCount} válidas',
+              label: S.of(context).csvValidCount(result.successCount),
               color: AppColors.income,
             ),
             const SizedBox(width: AppSpacing.sm),
             if (result.hasErrors)
               _SummaryChip(
-                label: '${result.errorCount} errores',
+                label: S.of(context).csvErrorCountLabel(result.errorCount),
                 color: AppColors.expense,
               ),
           ],
@@ -540,8 +556,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         // Errores (primeros 5)
         if (result.hasErrors) ...[
           const SizedBox(height: AppSpacing.md),
-          const Text(
-            'Filas con error (no se importarán):',
+          Text(
+            S.of(context).csvErrorRowsHeader,
             style: TextStyle(
               fontSize: 12,
               color: AppColors.expense,
@@ -550,7 +566,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           const SizedBox(height: AppSpacing.xs),
           ...result.errors.take(5).map(
                 (e) => Text(
-                  e.toString(),
+                  S.of(context).csvRowError(e.rowIndex + 1, _csvErrMsg(context, e)),
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary,
@@ -559,7 +575,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
               ),
           if (result.errorCount > 5)
             Text(
-              '… y ${result.errorCount - 5} errores más.',
+              S.of(context).csvMoreErrors(result.errorCount - 5),
               style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.textDisabled,
@@ -571,8 +587,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           const SizedBox(height: AppSpacing.md),
           const LinearProgressIndicator(),
           const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'Importando…',
+          Text(
+            S.of(context).csvImporting,
             style: TextStyle(color: AppColors.textSecondary),
           ),
         ],
@@ -592,14 +608,14 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            '$_importedCount transacciones importadas',
+            S.of(context).csvImportedCount(_importedCount),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.x2l),
           FilledButton.icon(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.check),
-            label: const Text('Listo'),
+            label: Text(S.of(context).doneButton),
           ),
         ],
       ),
@@ -616,8 +632,8 @@ class _StepControls extends StatelessWidget {
     required this.canContinue,
     required this.onContinue,
     required this.onCancel,
-    this.continueLabel = 'Siguiente',
-    this.cancelLabel = 'Atrás',
+    this.continueLabel,
+    this.cancelLabel,
     this.importing = false,
   });
 
@@ -626,8 +642,8 @@ class _StepControls extends StatelessWidget {
   final bool canContinue;
   final VoidCallback onContinue;
   final VoidCallback? onCancel;
-  final String continueLabel;
-  final String cancelLabel;
+  final String? continueLabel;
+  final String? cancelLabel;
   final bool importing;
 
   @override
@@ -646,13 +662,13 @@ class _StepControls extends StatelessWidget {
                         color: Colors.white,
                       ),
                     )
-                  : Text(continueLabel),
+                  : Text(continueLabel ?? S.of(context).nextButton),
             ),
             if (onCancel != null) ...[
               const SizedBox(width: AppSpacing.sm),
               TextButton(
                 onPressed: onCancel,
-                child: Text(cancelLabel),
+                child: Text(cancelLabel ?? S.of(context).backButton),
               ),
             ],
           ],
@@ -672,8 +688,8 @@ class _RawPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Vista previa (primeras 4 filas):',
+        Text(
+          S.of(context).csvPreviewHeader,
           style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -729,15 +745,15 @@ class _PreviewTable extends StatelessWidget {
         dataRowMinHeight: 28,
         dataRowMaxHeight: 36,
         columnSpacing: 16,
-        columns: const [
-          DataColumn(label: Text('Fecha', style: TextStyle(fontSize: 12))),
-          DataColumn(label: Text('Descripción', style: TextStyle(fontSize: 12))),
+        columns: [
+          DataColumn(label: Text(S.of(context).fieldDate, style: const TextStyle(fontSize: 12))),
+          DataColumn(label: Text(S.of(context).fieldDescription, style: const TextStyle(fontSize: 12))),
           DataColumn(
-            label: Text('Tipo', style: TextStyle(fontSize: 12)),
+            label: Text(S.of(context).fieldType, style: const TextStyle(fontSize: 12)),
             numeric: false,
           ),
           DataColumn(
-            label: Text('Monto', style: TextStyle(fontSize: 12)),
+            label: Text(S.of(context).amountLabel, style: const TextStyle(fontSize: 12)),
             numeric: true,
           ),
         ],

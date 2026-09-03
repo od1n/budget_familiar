@@ -61,7 +61,7 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
 
     double totalIncome = 0, totalExpense = 0;
     for (final row in rows) {
-      final val = row.amountUsdEquivalent ?? row.amount;
+      final val = row.amountUsdEquivalent ?? (row.currencyCode == 'USD' ? row.amount : 0.0);
       if (row.type == 'income') {
         totalIncome += val;
       } else {
@@ -94,7 +94,7 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
     for (final row in rows) {
       final catId = row.categoryId ?? 'uncategorized';
       result[catId] =
-          (result[catId] ?? 0) + (row.amountUsdEquivalent ?? row.amount);
+          (result[catId] ?? 0) + (row.amountUsdEquivalent ?? (row.currencyCode == 'USD' ? row.amount : 0.0));
     }
     return result;
   }
@@ -117,6 +117,25 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
   Future<List<TransactionsTableData>> getUnsynced() {
     return (select(transactionsTable)..where((t) => t.isSynced.equals(false)))
         .get();
+  }
+
+  /// Heurística de duplicado: misma tasa/grupo/tipo, monto ~igual y mismo día.
+  Future<bool> existsSimilar({
+    required String groupId,
+    required double amount,
+    required DateTime day,
+    required String type,
+  }) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
+    final rows = await (select(transactionsTable)
+          ..where((t) => t.groupId.equals(groupId))
+          ..where((t) => t.type.equals(type))
+          ..where((t) => t.amount.isBetweenValues(amount - 0.005, amount + 0.005))
+          ..where((t) => t.date.isBetweenValues(start, end))
+          ..limit(1))
+        .get();
+    return rows.isNotEmpty;
   }
 
   Future<void> insertTransaction(TransactionsTableCompanion entry) =>
@@ -230,7 +249,7 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
           if (row.amountUsdEquivalent == null && row.currencyCode != 'USD') {
             mixedCurrencies = true;
           }
-          final val = row.amountUsdEquivalent ?? row.amount;
+          final val = row.amountUsdEquivalent ?? (row.currencyCode == 'USD' ? row.amount : 0.0);
           if (row.type == 'income') {
             totalIncome += val;
           } else {
@@ -264,11 +283,98 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
       for (final row in rows) {
         final catId = row.categoryId ?? 'uncategorized';
         map[catId] =
-            (map[catId] ?? 0) + (row.amountUsdEquivalent ?? row.amount);
+            (map[catId] ?? 0) + (row.amountUsdEquivalent ?? (row.currencyCode == 'USD' ? row.amount : 0.0));
       }
       return map;
     });
   }
+
+  // ── Consultas por rango de fechas (periodo arbitrario) ────────────────────
+
+  /// Normaliza el fin del rango al último instante del día para incluir
+  /// transacciones registradas ese día con hora.
+  static DateTime _endOfDay(DateTime d) =>
+      DateTime(d.year, d.month, d.day, 23, 59, 59);
+
+  static MonthlySummary _summarize(List<TransactionsTableData> rows) {
+    double totalIncome = 0, totalExpense = 0;
+    bool mixedCurrencies = false;
+    for (final row in rows) {
+      if (row.type == 'transfer') continue;
+      if (row.amountUsdEquivalent == null && row.currencyCode != 'USD') {
+        mixedCurrencies = true;
+      }
+      final val =
+          row.amountUsdEquivalent ?? (row.currencyCode == 'USD' ? row.amount : 0.0);
+      if (row.type == 'income') {
+        totalIncome += val;
+      } else {
+        totalExpense += val;
+      }
+    }
+    return MonthlySummary(
+      totalIncome: totalIncome,
+      totalExpense: totalExpense,
+      balance: totalIncome - totalExpense,
+      count: rows.length,
+      hasMixedCurrencies: mixedCurrencies,
+    );
+  }
+
+  Stream<List<TransactionsTableData>> watchByRange({
+    required String groupId,
+    required DateTime start,
+    required DateTime end,
+    int? limit,
+  }) {
+    final q = select(transactionsTable)
+      ..where((t) => t.groupId.equals(groupId))
+      ..where((t) => t.date.isBetweenValues(start, _endOfDay(end)))
+      ..orderBy([(t) => OrderingTerm.desc(t.date)]);
+    if (limit != null) q.limit(limit);
+    return q.watch();
+  }
+
+  Stream<MonthlySummary> watchSummaryForRange({
+    required String groupId,
+    required DateTime start,
+    required DateTime end,
+  }) =>
+      watchByRange(groupId: groupId, start: start, end: end).map(_summarize);
+
+  Future<MonthlySummary> getSummaryForRange({
+    required String groupId,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final rows = await (select(transactionsTable)
+          ..where((t) => t.groupId.equals(groupId))
+          ..where((t) => t.date.isBetweenValues(start, _endOfDay(end)))
+          ..where((t) => t.type.isNotValue('transfer')))
+        .get();
+    return _summarize(rows);
+  }
+
+  Stream<Map<String, double>> watchExpenseByCategoryForRange({
+    required String groupId,
+    required DateTime start,
+    required DateTime end,
+  }) =>
+      (select(transactionsTable)
+            ..where((t) => t.groupId.equals(groupId))
+            ..where((t) => t.type.equals('expense'))
+            ..where((t) => t.date.isBetweenValues(start, _endOfDay(end))))
+          .watch()
+          .map((rows) {
+        final map = <String, double>{};
+        for (final row in rows) {
+          final catId = row.categoryId ?? 'uncategorized';
+          map[catId] = (map[catId] ?? 0) +
+              (row.amountUsdEquivalent ??
+                  (row.currencyCode == 'USD' ? row.amount : 0.0));
+        }
+        return map;
+      });
 
   Stream<List<TransactionsTableData>> watchRecent({
     required String groupId,

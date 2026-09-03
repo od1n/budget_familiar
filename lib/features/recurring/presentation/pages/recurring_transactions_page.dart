@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/utils/category_utils.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../data/local/app_database.dart';
 import '../../../categories/providers/categories_provider.dart';
 import '../../providers/recurring_transactions_provider.dart';
@@ -23,8 +24,14 @@ const _kFrequencies = [
   ('yearly', 'Anual'),
 ];
 
-String _freqLabel(String freq) =>
-    _kFrequencies.firstWhere((f) => f.$1 == freq, orElse: () => (freq, freq)).$2;
+String _freqLabel(BuildContext context, String freq) => switch (freq) {
+      'daily' => S.of(context).freqDaily,
+      'weekly' => S.of(context).freqWeekly,
+      'biweekly' => S.of(context).freqBiweekly,
+      'monthly' => S.of(context).freqMonthly,
+      'yearly' => S.of(context).freqYearly,
+      _ => freq,
+    };
 
 const _kSystemCategories = <(String, String, String)>[
   ('sys_food', 'Alimentación', 'restaurant'),
@@ -54,16 +61,16 @@ class RecurringTransactionsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transacciones recurrentes'),
+        title: Text(S.of(context).recurringPageTitle),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(context, ref, null),
-        tooltip: 'Nueva plantilla',
+        tooltip: S.of(context).newTemplate,
         child: const Icon(Icons.add),
       ),
       body: listAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(S.of(context).errorGenericDetail(e.toString()))),
         data: (templates) => templates.isEmpty
             ? _EmptyState(onAdd: () => _openForm(context, ref, null))
             : ListView.separated(
@@ -136,20 +143,19 @@ class RecurringTransactionsPage extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar plantilla'),
+        title: Text(S.of(context).deleteTemplateTitle),
         content: Text(
-          'Se eliminará "${template.description ?? _freqLabel(template.frequency)}" permanentemente. '
-          'Las transacciones ya generadas no se verán afectadas.',
+          S.of(context).deleteTemplateWarning(template.description ?? _freqLabel(context, template.frequency)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
+            child: Text(S.of(context).cancelButton),
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: AppColors.expense),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Eliminar'),
+            child: Text(S.of(context).deleteButton),
           ),
         ],
       ),
@@ -243,7 +249,7 @@ class _RecurringTile extends ConsumerWidget {
                       ),
                       const SizedBox(width: 3),
                       Text(
-                        'Próxima: ${_fmtDate(template.nextDueDate)}',
+                        S.of(context).nextDueLabel(_fmtDate(template.nextDueDate)),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppColors.textDisabled,
                             ),
@@ -267,13 +273,13 @@ class _RecurringTile extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
               onPressed: onEdit,
-              tooltip: 'Editar',
+              tooltip: S.of(context).editButton,
               color: AppColors.textSecondary,
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 20),
               onPressed: onDelete,
-              tooltip: 'Eliminar',
+              tooltip: S.of(context).deleteButton,
               color: AppColors.expense,
             ),
           ],
@@ -298,7 +304,7 @@ class _FreqBadge extends StatelessWidget {
           border: Border.all(color: AppColors.border),
         ),
         child: Text(
-          _freqLabel(freq),
+          _freqLabel(context, freq),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -320,14 +326,14 @@ class _EmptyState extends StatelessWidget {
             const Icon(Icons.repeat, size: 64, color: AppColors.textDisabled),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Sin plantillas recurrentes',
+              S.of(context).noTemplates,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Automatiza alquiler, salario, servicios y más.',
+              S.of(context).noTemplatesSubtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textDisabled,
                   ),
@@ -336,7 +342,7 @@ class _EmptyState extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('Nueva plantilla'),
+              label: Text(S.of(context).newTemplate),
             ),
           ],
         ),
@@ -427,7 +433,7 @@ class _RecurringFormState extends State<_RecurringForm> {
   Future<void> _submit() async {
     final amount = double.tryParse(_amountCtrl.text.replaceAll(',', '.'));
     if (amount == null || amount <= 0) {
-      _showError('Ingresa un monto válido.');
+      _showError(S.of(context).enterValidAmount);
       return;
     }
 
@@ -435,7 +441,7 @@ class _RecurringFormState extends State<_RecurringForm> {
     if (_frequency == 'monthly' && _dayCtrl.text.isNotEmpty) {
       dayOfMonth = int.tryParse(_dayCtrl.text);
       if (dayOfMonth == null || dayOfMonth < 1 || dayOfMonth > 28) {
-        _showError('El día del mes debe ser entre 1 y 28.');
+        _showError(S.of(context).dayOfMonthRange);
         return;
       }
     }
@@ -466,7 +472,7 @@ class _RecurringFormState extends State<_RecurringForm> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(_isEditing ? 'Editar plantilla' : 'Nueva plantilla'),
+      title: Text(_isEditing ? S.of(context).editTemplate : S.of(context).newTemplate),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
         width: 400,
@@ -476,18 +482,18 @@ class _RecurringFormState extends State<_RecurringForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Tipo: Ingreso / Gasto
-              const _SectionLabel('Tipo'),
+              _SectionLabel(S.of(context).fieldType),
               const SizedBox(height: AppSpacing.sm),
               SegmentedButton<String>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: 'income',
-                    label: Text('Ingreso'),
+                    label: Text(S.of(context).incomeTypeButton),
                     icon: Icon(Icons.arrow_downward, size: 16),
                   ),
                   ButtonSegment(
                     value: 'expense',
-                    label: Text('Gasto'),
+                    label: Text(S.of(context).expenseTypeButton),
                     icon: Icon(Icons.arrow_upward, size: 16),
                   ),
                 ],
@@ -504,7 +510,7 @@ class _RecurringFormState extends State<_RecurringForm> {
               const SizedBox(height: AppSpacing.lg),
 
               // Monto + moneda
-              const _SectionLabel('Monto'),
+              _SectionLabel(S.of(context).amountLabel),
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
@@ -557,7 +563,7 @@ class _RecurringFormState extends State<_RecurringForm> {
               const SizedBox(height: AppSpacing.lg),
 
               // Frecuencia
-              const _SectionLabel('Frecuencia'),
+              _SectionLabel(S.of(context).frequencyLabel),
               const SizedBox(height: AppSpacing.sm),
               GestureDetector(
                 onTap: _pickFrequency,
@@ -575,7 +581,7 @@ class _RecurringFormState extends State<_RecurringForm> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(_freqLabel(_frequency)),
+                      Text(_freqLabel(context, _frequency)),
                       const Icon(Icons.expand_more, size: 18),
                     ],
                   ),
@@ -588,16 +594,16 @@ class _RecurringFormState extends State<_RecurringForm> {
                   controller: _dayCtrl,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Día del mes (1–28, opcional)',
-                    hintText: 'p. ej. 1 para el primer día',
+                  decoration: InputDecoration(
+                    labelText: S.of(context).dayOfMonthLabel,
+                    hintText: S.of(context).dayOfMonthHint,
                   ),
                 ),
               ],
               const SizedBox(height: AppSpacing.lg),
 
               // Próxima fecha
-              const _SectionLabel('Próxima fecha'),
+              _SectionLabel(S.of(context).nextDateLabel),
               const SizedBox(height: AppSpacing.sm),
               GestureDetector(
                 onTap: _pickDate,
@@ -628,7 +634,7 @@ class _RecurringFormState extends State<_RecurringForm> {
               const SizedBox(height: AppSpacing.lg),
 
               // Categoría
-              const _SectionLabel('Categoría (opcional)'),
+              _SectionLabel(S.of(context).categoryOptionalLabel),
               const SizedBox(height: AppSpacing.sm),
               GestureDetector(
                 onTap: () => _pickCategory(context),
@@ -648,8 +654,8 @@ class _RecurringFormState extends State<_RecurringForm> {
                     children: [
                       Text(
                         _categoryId != null
-                            ? _catName(_categoryId!)
-                            : 'Sin categoría',
+                            ? _catName(context, _categoryId!)
+                            : S.of(context).noCategoryLabel,
                         style: TextStyle(
                           color: _categoryId != null
                               ? AppColors.textPrimary
@@ -667,9 +673,9 @@ class _RecurringFormState extends State<_RecurringForm> {
               TextField(
                 controller: _descCtrl,
                 maxLength: 100,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción (opcional)',
-                  hintText: 'p. ej. Alquiler apartamento',
+                decoration: InputDecoration(
+                  labelText: S.of(context).descriptionOptionalLabel,
+                  hintText: S.of(context).descriptionHint,
                   counterText: '',
                 ),
               ),
@@ -681,7 +687,7 @@ class _RecurringFormState extends State<_RecurringForm> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text(S.of(context).cancelButton),
         ),
         ElevatedButton(
           onPressed: _saving ? null : _submit,
@@ -706,7 +712,7 @@ class _RecurringFormState extends State<_RecurringForm> {
     final picked = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('Moneda'),
+        title: Text(S.of(context).currencyFieldLabel),
         children: ['USD', 'VES', 'EUR']
             .map(
               (c) => SimpleDialogOption(
@@ -724,7 +730,7 @@ class _RecurringFormState extends State<_RecurringForm> {
     final picked = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('Frecuencia'),
+        title: Text(S.of(context).frequencyLabel),
         children: _kFrequencies
             .map(
               (f) => SimpleDialogOption(
@@ -737,7 +743,7 @@ class _RecurringFormState extends State<_RecurringForm> {
                       color: AppColors.textSecondary,
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    Text(f.$2),
+                    Text(_freqLabel(context, f.$1)),
                   ],
                 ),
               ),
@@ -773,15 +779,15 @@ class _RecurringFormState extends State<_RecurringForm> {
     final picked = await showDialog<String?>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('Categoría'),
+        title: Text(S.of(context).categoryLabel),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.of(ctx).pop('__none__'),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.clear, size: 18, color: AppColors.textSecondary),
-                SizedBox(width: AppSpacing.sm),
-                Text('Sin categoría'),
+                const Icon(Icons.clear, size: 18, color: AppColors.textSecondary),
+                const SizedBox(width: AppSpacing.sm),
+                Text(S.of(context).noCategoryLabel),
               ],
             ),
           ),
@@ -797,7 +803,7 @@ class _RecurringFormState extends State<_RecurringForm> {
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  Text(c.$2),
+                  Text(categoryDisplayName(context, c.$1, c.$2)),
                 ],
               ),
             ),
@@ -834,11 +840,9 @@ class _RecurringFormState extends State<_RecurringForm> {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  String _catName(String id) {
-    final sys = _kSystemCategories.where((c) => c.$1 == id).firstOrNull;
-    if (sys != null) return sys.$2;
+  String _catName(BuildContext context, String id) {
     final custom = widget.customCategories.where((c) => c.id == id).firstOrNull;
-    return custom?.name ?? id;
+    return categoryDisplayName(context, id, custom?.name ?? id);
   }
 
   IconData _freqIcon(String freq) => switch (freq) {

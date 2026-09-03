@@ -10,6 +10,9 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../utils/category_utils.dart';
+
 import '../../data/local/app_database.dart';
 
 // ── Servicio de exportación de reportes ──────────────────────────────────────
@@ -50,11 +53,21 @@ class ExportService {
     final monthName = _monthNames[month - 1];
     final fileName = 'budget_${monthName}_$year.$format';
 
+    final s = S.of(context);
+    final localeName = Localizations.localeOf(context).languageCode;
+    final displayMonth = toBeginningOfSentenceCase(
+          DateFormat.MMMM(localeName).format(DateTime(year, month)),
+        ) ??
+        monthName;
+    final catNames = {
+      for (final c in categories) c.id: categoryDisplayName(context, c.id, c.name),
+    };
+
     final Uint8List bytes;
     final String mimeType;
 
     if (format == 'csv') {
-      final csv = _buildCsv(transactions, categories);
+      final csv = _buildCsv(transactions, catNames, s);
       // BOM UTF-8 para que Excel abra correctamente en Windows
       bytes = Uint8List.fromList([0xEF, 0xBB, 0xBF, ...utf8.encode(csv)]);
       mimeType = 'text/csv';
@@ -62,9 +75,11 @@ class ExportService {
       bytes = await _buildPdf(
         year: year,
         month: month,
-        monthName: monthName,
+        displayMonth: displayMonth,
         transactions: transactions,
         categories: categories,
+        catNames: catNames,
+        s: s,
       );
       mimeType = 'application/pdf';
     }
@@ -77,13 +92,11 @@ class ExportService {
 
   static String _buildCsv(
     List<TransactionsTableData> transactions,
-    List<CategoriesTableData> categories,
+    Map<String, String> catMap,
+    S s,
   ) {
-    final catMap = {for (final c in categories) c.id: c.name};
     final buf = StringBuffer();
-    buf.writeln(
-      'Fecha,Tipo,Monto,Moneda,Equivalente USD,Categoria,Descripcion,Contraparte',
-    );
+    buf.writeln(s.csvExportHeader);
     // Ordenar por fecha descendente (igual que en la UI)
     final sorted = [...transactions]..sort((a, b) => b.date.compareTo(a.date));
     for (final tx in sorted) {
@@ -93,11 +106,11 @@ class ExportService {
       if (tx.type == 'transfer') {
         final meta = _parseTransferNotes(tx.notes);
         type = meta != null && meta['direction'] == 'out'
-            ? 'Transferencia enviada'
-            : 'Transferencia recibida';
+            ? s.transferSent
+            : s.transferReceived;
         peer = meta?['peer_name'] as String? ?? '';
       } else {
-        type = tx.type == 'income' ? 'Ingreso' : 'Gasto';
+        type = tx.type == 'income' ? s.incomeTypeButton : s.expenseTypeButton;
         peer = '';
       }
       final cat = catMap[tx.categoryId ?? ''] ?? '';
@@ -124,14 +137,16 @@ class ExportService {
   static Future<Uint8List> _buildPdf({
     required int year,
     required int month,
-    required String monthName,
+    required String displayMonth,
     required List<TransactionsTableData> transactions,
     required List<CategoriesTableData> categories,
+    required Map<String, String> catNames,
+    required S s,
   }) async {
     final doc = pw.Document();
     final fmt = NumberFormat('#,##0.00', 'es');
     final dateFmt = DateFormat('dd/MM');
-    final catMap = {for (final c in categories) c.id: c.name};
+    final catMap = catNames;
     final now = DateFormat('dd/MM/yyyy').format(DateTime.now());
 
     // ── Calcular totales ────────────────────────────────────────────────────
@@ -141,7 +156,7 @@ class ExportService {
 
     for (final tx in transactions) {
       if (tx.type == 'transfer') continue; // Neutrales: no afectan totales
-      final val = tx.amountUsdEquivalent ?? tx.amount;
+      final val = tx.amountUsdEquivalent ?? (tx.currencyCode == 'USD' ? tx.amount : 0.0);
       if (tx.type == 'income') {
         totalIncome += val;
       } else {
@@ -255,13 +270,13 @@ class ExportService {
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      'Reporte ${_capitalize(monthName)} $year',
+                      s.reportTitle(displayMonth, year),
                       style: pw.TextStyle(
                         fontSize: 10,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    pw.Text('Generado: $now', style: sSmall),
+                    pw.Text(s.generatedOn(now), style: sSmall),
                   ],
                 ),
               ],
@@ -275,7 +290,7 @@ class ExportService {
     pw.Widget pageFooter(pw.Context ctx) => pw.Align(
           alignment: pw.Alignment.centerRight,
           child: pw.Text(
-            'Pag. ${ctx.pageNumber} / ${ctx.pagesCount}',
+            s.pageOf(ctx.pageNumber, ctx.pagesCount),
             style: sSmall,
           ),
         );
@@ -291,14 +306,14 @@ class ExportService {
             pw.TableRow(
               decoration: pw.BoxDecoration(color: cHeaderBg),
               children: [
-                cell('Categoria', sBold),
-                cell('Monto (USD)', sBold, align: pw.TextAlign.right),
+                cell(s.categoryLabel, sBold),
+                cell(s.pdfColAmountUsd, sBold, align: pw.TextAlign.right),
                 cell('%', sBold, align: pw.TextAlign.right),
               ],
             ),
             ...sortedCats.map((e) {
               final name = e.key.isEmpty
-                  ? 'Sin categoria'
+                  ? s.noCategoryLabel
                   : (catMap[e.key] ?? e.key);
               final pct = totalExpense > 0
                   ? (e.value / totalExpense * 100)
@@ -329,7 +344,7 @@ class ExportService {
 
     // ── Tabla de movimientos ─────────────────────────────────────────────────
     pw.Widget transactionTable() => sortedTxs.isEmpty
-        ? pw.Text('Sin movimientos registrados.', style: sNormal)
+        ? pw.Text(s.noMovements, style: sNormal)
         : pw.Table(
             columnWidths: const {
               0: pw.FixedColumnWidth(42), // Fecha
@@ -342,11 +357,11 @@ class ExportService {
               pw.TableRow(
                 decoration: pw.BoxDecoration(color: cHeaderBg),
                 children: [
-                  cell('Fecha', sBold),
-                  cell('Tipo', sBold),
-                  cell('Descripcion', sBold),
-                  cell('Categoria', sBold),
-                  cell('Monto', sBold, align: pw.TextAlign.right),
+                  cell(s.fieldDate, sBold),
+                  cell(s.fieldType, sBold),
+                  cell(s.fieldDescription, sBold),
+                  cell(s.categoryLabel, sBold),
+                  cell(s.amountLabel, sBold, align: pw.TextAlign.right),
                 ],
               ),
               ...sortedTxs.map((tx) {
@@ -360,7 +375,7 @@ class ExportService {
                   final isOut = meta?['direction'] == 'out';
                   color = cTextSecondary;
                   sign = isOut ? '→' : '←';
-                  typeLabel = isOut ? 'Transf. env.' : 'Transf. rec.';
+                  typeLabel = isOut ? s.transferSentShort : s.transferReceivedShort;
                   final peer = meta?['peer_name'] as String? ?? '';
                   descText = peer.isNotEmpty
                       ? '${tx.description ?? ''} ($peer)'.trim()
@@ -369,7 +384,7 @@ class ExportService {
                   final isIncome = tx.type == 'income';
                   color = isIncome ? cIncome : cExpense;
                   sign = isIncome ? '+' : '-';
-                  typeLabel = isIncome ? 'Ingreso' : 'Gasto';
+                  typeLabel = isIncome ? s.incomeTypeButton : s.expenseTypeButton;
                   descText = tx.description ?? '-';
                 }
 
@@ -413,12 +428,12 @@ class ExportService {
           pw.Row(
             children: [
               summaryBox(
-                'Ingresos (USD)',
+                s.summaryIncomeUsd,
                 '+\$ ${fmt.format(totalIncome)}',
                 cIncome,
               ),
               summaryBox(
-                'Gastos (USD)',
+                s.summaryExpenseUsd,
                 '-\$ ${fmt.format(totalExpense)}',
                 cExpense,
               ),
@@ -436,7 +451,7 @@ class ExportService {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('Balance (USD)', style: sSmall),
+                      pw.Text(s.summaryBalanceUsd, style: sSmall),
                       pw.SizedBox(height: 3),
                       pw.Text(
                         '${balance >= 0 ? '+' : ''}\$ ${fmt.format(balance)}',
@@ -456,7 +471,7 @@ class ExportService {
           // Gastos por categoría
           if (sortedCats.isNotEmpty) ...[
             pw.SizedBox(height: 22),
-            pw.Text('Gastos por categoria', style: sHeader),
+            pw.Text(s.pdfExpensesByCategory, style: sHeader),
             pw.SizedBox(height: 8),
             categoryTable(),
           ],
@@ -464,7 +479,7 @@ class ExportService {
           // Movimientos del mes
           pw.SizedBox(height: 22),
           pw.Text(
-            'Movimientos del mes (${transactions.length})',
+            s.pdfMonthMovements(transactions.length),
             style: sHeader,
           ),
           pw.SizedBox(height: 8),
@@ -504,7 +519,7 @@ class ExportService {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Guardado: ${location.path}'),
+            content: Text(S.of(context).savedTo(location.path)),
             duration: const Duration(seconds: 4),
             action: SnackBarAction(
               label: 'OK',
@@ -523,9 +538,6 @@ class ExportService {
   }
 
   // ── Utilidades privadas ───────────────────────────────────────────────────
-
-  static String _capitalize(String s) =>
-      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
   /// Convierte un hex como '#27AE60' a PdfColor.
   static PdfColor _pdfColor(String hex) {

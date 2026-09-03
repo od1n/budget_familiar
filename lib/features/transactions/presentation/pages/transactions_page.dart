@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'batch_receipts_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -109,6 +110,11 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
         title: Text(label[0].toUpperCase() + label.substring(1)),
         actions: [
           IconButton(
+            icon: const Icon(Icons.receipt_long),
+            tooltip: S.of(context).batchReceiptsTooltip,
+            onPressed: () => launchBatchReceipts(context, ref),
+          ),
+          IconButton(
             icon: const Icon(Icons.repeat),
             tooltip: s.recurringTooltip,
             onPressed: () => context.push(AppRoutes.recurring),
@@ -117,7 +123,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
             icon: Icon(
               _showSearch ? Icons.search_off : Icons.search,
             ),
-            tooltip: _showSearch ? 'Cerrar búsqueda' : s.searchTooltip,
+            tooltip: _showSearch ? S.of(context).closeSearchTooltip : s.searchTooltip,
             onPressed: () => setState(() {
               _showSearch = !_showSearch;
               if (!_showSearch) {
@@ -217,7 +223,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
 
     return stream.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => Center(child: Text(S.of(context).errorGenericDetail(e.toString()))),
       data: (txs) {
         return FutureBuilder<List<CategoriesTableData>>(
           future: db.categoriesDao.getCategoriesForGroup(groupId),
@@ -285,7 +291,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                     ),
                     icon: const Icon(Icons.expand_more, size: 18),
                     label: Text(
-                      'Ver más (mostrando $_txLimit de ${_txLimit > 0 ? "$_txLimit+" : "..."})',
+                      S.of(context).seeMorePaginated(_txLimit, _txLimit > 0 ? "$_txLimit+" : "..."),
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
@@ -707,7 +713,7 @@ class _TxTileState extends ConsumerState<_TxTile> {
       titleText = widget.tx.description!;
     } else if (isTransfer) {
       final meta = parseTransferMeta(widget.tx.notes);
-      titleText = meta?.isOutgoing == true ? 'Transferencia enviada' : 'Transferencia recibida';
+      titleText = meta?.isOutgoing == true ? S.of(context).transferSent : S.of(context).transferReceived;
     } else {
       titleText = isIncome ? S.of(context).incomeTypeButton : S.of(context).expenseTypeButton;
     }
@@ -786,7 +792,7 @@ class _CategoryLabel extends ConsumerWidget {
         final cat = snap.data?.where((c) => c.id == categoryId).firstOrNull;
         if (cat == null) return const SizedBox.shrink();
         return Text(
-          cat.name,
+          categoryDisplayName(context, cat.id, cat.name),
           style: Theme.of(context).textTheme.bodySmall,
         );
       },

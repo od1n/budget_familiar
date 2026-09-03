@@ -57,3 +57,7 @@ lib/l10n/app_localizations_*.dart
 # Secretos y API keys
 .env
 *.env
+.secrets/
+
+# Credenciales de build (dart-define)
+env.json

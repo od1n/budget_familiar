@@ -69,7 +69,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     : TextButton(
                         onPressed: _skip,
                         child: Text(
-                          'Omitir',
+                          s.onboardingSkip,
                           style: TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 14,
@@ -89,7 +89,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     icon: Icons.account_balance_wallet_outlined,
                     title: s.appTitle,
                     subtitle:
-                        'Controla tus finanzas en familia.\nEn USD y VES, con tasas en tiempo real.',
+                        s.onboardingSubtitle1,
                     features: [
                       _FeatureItem(
                         icon: Icons.currency_exchange_rounded,
@@ -97,15 +97,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       ),
                       _FeatureItem(
                         icon: Icons.attach_money_rounded,
-                        text: 'Registra en USD o VES, convierte al instante',
+                        text: s.onboardingFeature1b,
                       ),
                     ],
                   ),
                   _OnboardingStep(
                     icon: Icons.people_alt_outlined,
-                    title: 'Familia sincronizada',
+                    title: s.onboardingTitle2,
                     subtitle:
-                        'Todos los miembros ven los gastos en tiempo real.\nPresupuestos compartidos que funcionan.',
+                        s.onboardingSubtitle2,
                     features: [
                       _FeatureItem(
                         icon: Icons.sync_alt_rounded,
@@ -119,17 +119,17 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   ),
                   _OnboardingStep(
                     icon: Icons.auto_awesome_outlined,
-                    title: 'Inteligencia financiera',
+                    title: s.onboardingTitle3,
                     subtitle:
-                        'La IA analiza tus patrones de gasto\ny te da recomendaciones personalizadas.',
+                        s.onboardingSubtitle3,
                     features: [
                       _FeatureItem(
                         icon: Icons.insights_rounded,
-                        text: 'Alertas de gastos inusuales',
+                        text: s.onboardingFeature3a,
                       ),
                       _FeatureItem(
                         icon: Icons.receipt_long_outlined,
-                        text: 'Escanea recibos con OCR inteligente',
+                        text: s.onboardingFeature3b,
                       ),
                     ],
                   ),
@@ -195,7 +195,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: _nextPage,
-                        child: const Text('Siguiente'),
+                        child: Text(s.nextButton),
                       ),
                     ),
             ),

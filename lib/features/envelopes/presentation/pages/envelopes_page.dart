@@ -19,7 +19,7 @@ class EnvelopesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PremiumGate(
-      featureLabel: 'Sobres virtuales',
+      featureLabel: S.of(context).envelopesPageTitle,
       requiredLevel: PlanLevel.family,
       child: Scaffold(
         appBar: AppBar(title: Text(S.of(context).envelopesPageTitle)),
@@ -53,7 +53,7 @@ class _EnvelopesBody extends ConsumerWidget {
 
     return envsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => Center(child: Text(S.of(context).errorGenericDetail(e.toString()))),
       data: (envs) {
         if (envs.isEmpty) return _EmptyState(
           onAdd: () => EnvelopesPage._openForm(context, ref, null),
@@ -210,7 +210,7 @@ class _EnvelopeCard extends StatelessWidget {
                       color: color),
                 ),
                 Text(
-                  'de ${_fmt.format(env.allocatedAmount)}',
+                  S.of(context).savingsOfTarget(_fmt.format(env.allocatedAmount)),
                   style: const TextStyle(
                       fontSize: 12, color: AppColors.textSecondary),
                 ),

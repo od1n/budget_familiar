@@ -39,7 +39,7 @@ class BudgetsPage extends ConsumerWidget {
       appBar: AppBar(title: Text(S.of(context).budgetPageTitle)),
       body: catsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text(S.of(context).errorGenericDetail(e.toString()))),
         data: (cats) {
           final budgets = budgetsAsync.valueOrNull ?? {};
           final spent = spentAsync.valueOrNull ?? {};
@@ -91,7 +91,7 @@ class BudgetsPage extends ConsumerWidget {
     final result = await showDialog<double>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(S.of(context).budgetDialogTitle(cat.name)),
+        title: Text(S.of(context).budgetDialogTitle(categoryDisplayName(context, cat.id, cat.name))),
         content: TextField(
           controller: ctrl,
           decoration: InputDecoration(
@@ -335,7 +335,7 @@ class _BudgetTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        cat.name,
+                        categoryDisplayName(context, cat.id, cat.name),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       hasLimit

@@ -1,6 +1,5 @@
 {
   "@@locale": "es",
-
   "@@x-context": "NAV",
   "navHome": "Inicio",
   "navTransactions": "Movimientos",
@@ -12,7 +11,6 @@
   "navFamily": "Familia",
   "navSettings": "Ajustes",
   "navRegister": "Registrar",
-
   "@@x-context-common": "COMMON",
   "appTitle": "Budget Familiar",
   "cancelButton": "Cancelar",
@@ -32,7 +30,6 @@
   "expenseLabel": "Gastos",
   "requiredField": "Requerido",
   "invalidNumber": "Número inválido",
-
   "@@x-context-auth": "AUTH",
   "authTagline": "Controla tus finanzas en familia.",
   "emailLabel": "Correo electrónico",
@@ -79,7 +76,6 @@
   "errorWeakPassword": "Contraseña muy débil. Usa al menos 8 caracteres.",
   "errorInvalidEmail": "El correo ingresado no es válido.",
   "errorCreateAccount": "Error al crear la cuenta. Intenta de nuevo.",
-
   "@@x-context-onboarding": "ONBOARDING",
   "onboardingTagline": "Controla tus finanzas en familia.\nEn USD y VES, con tasas en tiempo real.",
   "onboardingSync": "Sincronización familiar en tiempo real",
@@ -87,7 +83,6 @@
   "onboardingRates": "Tasas BCV y paralela actualizadas",
   "onboardingCreateAccount": "Crear cuenta",
   "onboardingHasAccount": "Ya tengo cuenta",
-
   "@@x-context-dashboard": "DASHBOARD",
   "balanceOfMonth": "Balance del mes",
   "mixedCurrencyWarning": "Algunas transacciones no tienen equivalente USD; el balance puede no reflejar la moneda real.",
@@ -116,7 +111,6 @@
     }
   },
   "viewButton": "Ver",
-
   "@@x-context-transactions": "TRANSACTIONS",
   "recurringTooltip": "Recurrentes",
   "searchTooltip": "Buscar",
@@ -163,7 +157,6 @@
   "rateLoading": "Obteniendo tasas…",
   "rateUnavailable": "Tasa no disponible",
   "rateParallel": "Paralela",
-
   "@@x-context-budgets": "BUDGETS",
   "budgetPageTitle": "Presupuesto",
   "budgetMonthSummary": "Resumen del mes",
@@ -191,7 +184,6 @@
   "budgetLimitLabel": "Límite mensual (USD)",
   "budgetLimitHelper": "Ingresa 0 para quitar el límite",
   "noLimitDefined": "Sin límite definido",
-
   "@@x-context-savings": "SAVINGS",
   "savingsPageTitle": "Metas de ahorro",
   "newGoalButton": "Nueva meta",
@@ -247,7 +239,6 @@
   },
   "savingsEmptyTitle": "Aún no tienes metas de ahorro.",
   "savingsEmptySubtitle": "Crea una meta para empezar a ahorrar.",
-
   "@@x-context-investments": "INVESTMENTS",
   "investmentsPageTitle": "Inversiones",
   "newInvestmentTooltip": "Nueva inversión",
@@ -285,7 +276,6 @@
   "investmentTypeCrypto": "Criptomonedas",
   "investmentTypeRealEstate": "Inmuebles",
   "investmentTypeOther": "Otro",
-
   "@@x-context-envelopes": "ENVELOPES",
   "envelopesPageTitle": "Sobres virtuales",
   "newEnvelopeTooltip": "Nuevo sobre",
@@ -327,7 +317,6 @@
   "envelopesEmptyTitle": "Sin sobres activos",
   "envelopesEmptySubtitle": "Asigna dinero a categorías específicas y controla cuánto llevas gastado.",
   "createEnvelopeButton": "Crear sobre",
-
   "@@x-context-family": "FAMILY",
   "familyPageTitle": "Familia",
   "familyGroupSection": "Grupo familiar",
@@ -387,7 +376,6 @@
   "signOutConfirm": "¿Confirmas que deseas cerrar la sesión?",
   "editNameTitle": "Editar nombre",
   "nameUpdated": "Nombre actualizado.",
-
   "@@x-context-settings": "SETTINGS",
   "settingsPageTitle": "Configuración",
   "ocrSectionTitle": "OCR de recibos",
@@ -417,7 +405,6 @@
   "deleteAccountFinalButton": "Eliminar cuenta",
   "saveOcrConfig": "Guardar configuración OCR",
   "ocrConfigSaved": "Configuración OCR guardada.",
-
   "@@x-context-paywall": "PAYWALL",
   "plansPageTitle": "Planes",
   "restoreButton": "Restaurar",
@@ -437,5 +424,769 @@
   "planFamiliarSubtitle": "Familia + exportación",
   "planPremiumTitle": "Premium",
   "planPremiumSubtitle": "Todo + IA financiera",
-  "comingSoonBadge": "Próximamente"
+  "comingSoonBadge": "Próximamente",
+  "batchGalleryMultiple": "Elegir de galería (varios)",
+  "batchTakePhotos": "Tomar fotos (varios)",
+  "batchScanFolder": "Escanear carpeta de tickets",
+  "batchChooseFolder": "Elegir carpeta de tickets…",
+  "batchChangeFolder": "Cambiar carpeta…",
+  "batchChooseFiles": "Elegir archivos (una vez)",
+  "batchFolderGone": "La carpeta ya no existe.",
+  "batchNoNew": "No hay tickets nuevos en la carpeta.",
+  "batchConfirmTitle": "Confirmar lote",
+  "batchQuotaBody": "Se procesarán {count} ticket(s), 1 lectura OCR cada uno.\nHas usado {used} de {limit} este mes (te quedan {remaining}).",
+  "@batchQuotaBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      },
+      "remaining": {
+        "type": "int"
+      }
+    }
+  },
+  "batchQuotaWarning": "\n\n⚠️ El lote supera tu cuota; los que excedan fallarán.",
+  "batchContinue": "Continuar",
+  "batchReviewTitle": "Revisar lote de tickets",
+  "batchFailedWarn": "{count} ticket(s) no se pudieron leer. Quedan desmarcados; puedes reintentarlos aparte.",
+  "@batchFailedWarn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchSaveSelected": "Guardar {count} seleccionado(s)",
+  "@batchSaveSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchSaving": "Guardando…",
+  "batchProcessing": "Procesando {done} de {total} tickets…",
+  "@batchProcessing": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "batchDuplicate": "⚠️ Posible duplicado (mismo monto y fecha)",
+  "batchCouldntRead": "No se pudo leer.",
+  "batchNoCategory": "Sin categoría",
+  "batchTakeTickets": "Tomar tickets ({count})",
+  "@batchTakeTickets": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchNoPhotos": "Aún no has tomado fotos.",
+  "batchTakeAnother": "Tomar otra",
+  "batchProcessN": "Procesar {count}",
+  "@batchProcessN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchSavedCount": "{count} transacción(es) guardada(s).",
+  "@batchSavedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ocrConfigPrompt": "Configura tu API key en Configuración → OCR de recibos.",
+  "ocrErrorMsg": "Error OCR: {error}",
+  "@ocrErrorMsg": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "ocrExtracted": "Datos extraídos del recibo. Verifica antes de guardar.",
+  "imagesLabel": "Imágenes",
+  "takePhoto": "Tomar foto",
+  "chooseFromGallery": "Elegir de galería",
+  "createCategoryQuoted": "Crear \"{name}\"",
+  "@createCategoryQuoted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rateUseLabel": "Usar tasa:",
+  "rateUpdated": "Actualizado {ago}",
+  "@rateUpdated": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "catPharmacy": "Farmacia",
+  "catGym": "Gimnasio",
+  "catSport": "Deporte",
+  "catBeauty": "Belleza",
+  "catTravel": "Viajes",
+  "catHotel": "Hospedaje",
+  "catFuel": "Combustible",
+  "catTechnology": "Tecnología",
+  "catPets": "Mascotas",
+  "catGifts": "Regalos",
+  "catCoffee": "Café",
+  "catBakery": "Panadería",
+  "catMarket": "Mercado",
+  "catHardware": "Ferretería",
+  "referralsTitle": "Referidos",
+  "appSettingsTitle": "Ajustes de la aplicación",
+  "appSettingsSubtitle": "OCR, moneda, notificaciones y más",
+  "errorGenericDetail": "Error: {error}",
+  "@errorGenericDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorJoin": "Error al unirse: {error}",
+  "@errorJoin": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorCreateGroup": "Error al crear grupo: {error}",
+  "@errorCreateGroup": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadMembers": "Error cargando miembros: {error}",
+  "@errorLoadMembers": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorTransfer": "Error al transferir: {error}",
+  "@errorTransfer": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdate": "Error al actualizar: {error}",
+  "@errorUpdate": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "shareInviteMessage": "Únete a mi grupo familiar \"{groupName}\" en Budget Familiar.\n\n1. Descarga la app: https://play.google.com/store/apps/details?id=com.budgetfamiliar.app\n2. Crea tu cuenta e ingresa el código: {inviteCode}\n\nO si ya tienes la app, abre este enlace: {link}",
+  "@shareInviteMessage": {
+    "placeholders": {
+      "groupName": {
+        "type": "String"
+      },
+      "inviteCode": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "newAdminFallback": "nuevo admin",
+  "leaveGroupAdminWarning": "Eres el administrador. Si sales y eres el único miembro, el grupo se eliminará permanentemente. ¿Confirmas?",
+  "leaveGroupConfirmNamed": "¿Confirmas que deseas salir del grupo \"{name}\"?",
+  "@leaveGroupConfirmNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "youSuffix": "{name} (tú)",
+  "@youSuffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hideCategoryWarning": "Se ocultará \"{name}\". Las transacciones ya registradas con esta categoría no se verán afectadas.",
+  "@hideCategoryWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "referralInviteTitle": "Invita amigos y gana",
+  "referralInviteBody": "Invita a {count} personas y obtiene 1 mes gratis",
+  "@referralInviteBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "referralProgress": "{count} / {required} referidos",
+  "@referralProgress": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "goalReached": "Meta alcanzada",
+  "freeMonthActivated": "Mes gratis activado. Gracias por compartir.",
+  "redeemFreeMonth": "Canjear mes gratis",
+  "referralTrackingNote": "El conteo se actualizará cuando implementemos el tracking server-side.",
+  "userFallback": "Usuario",
+  "csvImportTitle": "Importar CSV bancario",
+  "csvImportAction": "Importar",
+  "csvStepFile": "Archivo y cuenta",
+  "csvStepMapping": "Mapeo de columnas",
+  "csvStepPreview": "Vista previa",
+  "csvSelectFile": "Seleccionar archivo CSV…",
+  "csvRowsDetected": "{count} filas detectadas",
+  "@csvRowsDetected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "csvDelimiter": "Delimitador",
+  "csvDelimComma": "Coma  ,",
+  "csvDelimSemicolon": "Punto y coma  ;",
+  "csvDelimTab": "Tabulador  ⇥",
+  "csvColumnN": "Columna {n}",
+  "@csvColumnN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "csvErrorLoadAccounts": "Error cargando cuentas",
+  "csvCreateAccountFirst": "Crea una cuenta primero para asociar las transacciones.",
+  "csvTargetAccount": "Cuenta destino",
+  "csvCurrency": "Moneda del CSV",
+  "csvLoadFileFirst": "Carga un archivo primero.",
+  "csvFirstRowHeader": "Primera fila es encabezado",
+  "csvDateColumn": "Columna de fecha",
+  "csvDateFormat": "Formato de fecha",
+  "csvDescColumn": "Columna de descripción",
+  "csvAmountColumns": "Columnas de monto",
+  "csvSingleAmount": "Monto único",
+  "csvDebitCredit": "Débito / Crédito",
+  "csvAmountColumnHint": "Columna de monto (+ ingreso / − gasto)",
+  "csvDebitColumn": "Columna débito (gasto)",
+  "csvCreditColumn": "Columna crédito (ingreso)",
+  "csvGoBackHint": "Vuelve al paso anterior y pulsa Siguiente.",
+  "csvValidCount": "{count} válidas",
+  "@csvValidCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "csvErrorCountLabel": "{count} errores",
+  "@csvErrorCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "csvErrorRowsHeader": "Filas con error (no se importarán):",
+  "csvMoreErrors": "… y {count} errores más.",
+  "@csvMoreErrors": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "csvImporting": "Importando…",
+  "csvImportedCount": "{count} transacciones importadas",
+  "@csvImportedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "doneButton": "Listo",
+  "csvPreviewHeader": "Vista previa (primeras 4 filas):",
+  "fieldDate": "Fecha",
+  "fieldDescription": "Descripción",
+  "fieldType": "Tipo",
+  "ocrSectionSubtitle": "Extrae datos automáticamente al fotografiar un recibo.",
+  "ocrEngineLabel": "Motor OCR",
+  "ollamaWarningTitle": "Advertencia",
+  "ollamaMobileWarningDialog": "Estás usando \"localhost\" con Ollama en un dispositivo móvil.\n\n\"localhost\" apunta al propio teléfono — Ollama no está instalado aquí, por lo que el OCR fallará.\n\nUsa la IP de tu PC/servidor en la misma red, por ejemplo: http://192.168.1.X:11434",
+  "fixButton": "Corregir",
+  "saveAnywayButton": "Guardar igual",
+  "backendGeminiSubtitle": "Gratis · Recomendado",
+  "backendClaudeSubtitle": "Pago · Alta calidad",
+  "backendOllamaSubtitleMobile": "Requiere servidor remoto",
+  "backendOllamaSubtitleDesktop": "Local · Sin internet",
+  "backendOllamaBadge": "¡Atención!",
+  "geminiApiKeyLabel": "Gemini API Key",
+  "geminiKeyHelper": "Obtén tu key gratuita en aistudio.google.com/apikey",
+  "geminiFreeTierInfo": "Free tier: 15 solicitudes/min · 1 500 solicitudes/día · sin tarjeta de crédito requerida.",
+  "claudeApiKeyLabel": "Claude API Key",
+  "claudeKeyHelper": "La clave se guarda solo en este dispositivo.",
+  "ollamaMobileWarningBanner": "\"localhost\" no funciona en dispositivos móviles — apunta al teléfono, no a tu PC. Usa la IP de tu servidor: http://192.168.1.X:11434",
+  "ollamaUrlLabel": "URL de Ollama",
+  "ollamaUrlHelper": "En móvil usa la IP de tu servidor en la misma red.",
+  "modelLabel": "Modelo",
+  "ollamaModelHelper": "Debe ser un modelo con soporte de visión (multimodal).",
+  "planLabelPrefix": "Plan {label}",
+  "@planLabelPrefix": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "biometricExportReason": "Confirma tu identidad para exportar los datos",
+  "biometricImportReason": "Confirma tu identidad para importar datos",
+  "statusConnecting": "Conectando…",
+  "errorLabel": "Error",
+  "deletingAccount": "Eliminando cuenta…",
+  "errorUnexpectedTitle": "Error inesperado",
+  "deleteAccountFailedMessage": "No se pudo eliminar la cuenta. Verifica tu conexión e intenta de nuevo.",
+  "deleteConfirmWord": "ELIMINAR",
+  "deleteAccountIrreversibleBody": "Esta acción eliminará permanentemente tu cuenta y todos tus datos. No podrás recuperarlos.",
+  "editGoal": "Editar meta",
+  "savingsOfTarget": "de {value}",
+  "@savingsOfTarget": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "savingsAdjusted": "Ajustado: {value}",
+  "@savingsAdjusted": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "dateColonLabel": "Fecha: {date}",
+  "@dateColonLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingSubtitle1": "Controla tus finanzas en familia.\nEn USD y VES, con tasas en tiempo real.",
+  "onboardingFeature1b": "Registra en USD o VES, convierte al instante",
+  "onboardingTitle2": "Familia sincronizada",
+  "onboardingSubtitle2": "Todos los miembros ven los gastos en tiempo real.\nPresupuestos compartidos que funcionan.",
+  "onboardingTitle3": "Inteligencia financiera",
+  "onboardingSubtitle3": "La IA analiza tus patrones de gasto\ny te da recomendaciones personalizadas.",
+  "onboardingFeature3a": "Alertas de gastos inusuales",
+  "onboardingFeature3b": "Escanea recibos con OCR inteligente",
+  "gateOnlyInPlan": "{feature} · Solo en {plan}",
+  "@gateOnlyInPlan": {
+    "placeholders": {
+      "feature": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "gateAvailableInPlan": "Disponible en {plan}",
+  "@gateAvailableInPlan": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "batchReceiptsTooltip": "Cargar lote de tickets",
+  "closeSearchTooltip": "Cerrar búsqueda",
+  "seeMorePaginated": "Ver más (mostrando {shown} de {total})",
+  "@seeMorePaginated": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "transferSent": "Transferencia enviada",
+  "transferReceived": "Transferencia recibida",
+  "maturityLabel": "Vence: {date}",
+  "@maturityLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sysCatFood": "Alimentación",
+  "sysCatTransport": "Transporte",
+  "sysCatServices": "Servicios",
+  "sysCatHealth": "Salud",
+  "sysCatEducation": "Educación",
+  "sysCatEntertainment": "Entretenimiento",
+  "sysCatClothing": "Ropa",
+  "sysCatHome": "Hogar",
+  "sysCatDebt": "Deudas",
+  "sysCatOther": "Otros gastos",
+  "sysCatSalary": "Salario",
+  "sysCatFreelance": "Freelance",
+  "sysCatInvestment": "Inversiones",
+  "sysCatOtherIncome": "Otros ingresos",
+  "freqDaily": "Diaria",
+  "freqWeekly": "Semanal",
+  "freqBiweekly": "Quincenal",
+  "freqMonthly": "Mensual",
+  "freqYearly": "Anual",
+  "recurringPageTitle": "Transacciones recurrentes",
+  "newTemplate": "Nueva plantilla",
+  "editTemplate": "Editar plantilla",
+  "deleteTemplateTitle": "Eliminar plantilla",
+  "deleteTemplateWarning": "Se eliminará \"{name}\" permanentemente. Las transacciones ya generadas no se verán afectadas.",
+  "@deleteTemplateWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nextDueLabel": "Próxima: {date}",
+  "@nextDueLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "noTemplates": "Sin plantillas recurrentes",
+  "noTemplatesSubtitle": "Automatiza alquiler, salario, servicios y más.",
+  "enterValidAmount": "Ingresa un monto válido.",
+  "dayOfMonthRange": "El día del mes debe ser entre 1 y 28.",
+  "dayOfMonthLabel": "Día del mes (1–28, opcional)",
+  "dayOfMonthHint": "p. ej. 1 para el primer día",
+  "nextDateLabel": "Próxima fecha",
+  "categoryOptionalLabel": "Categoría (opcional)",
+  "descriptionOptionalLabel": "Descripción (opcional)",
+  "noCategoryLabel": "Sin categoría",
+  "frequencyLabel": "Frecuencia",
+  "acctTypeCash": "Efectivo",
+  "acctTypeBank": "Cuenta bancaria",
+  "acctTypeDigital": "Billetera digital",
+  "acctTypeCredit": "Tarjeta de crédito",
+  "acctTypeInvestment": "Inversión",
+  "acctIconWallet": "Billetera",
+  "acctIconBank": "Banco",
+  "acctIconSavings": "Ahorros",
+  "acctIconCard": "Tarjeta",
+  "acctIconPayments": "Pagos",
+  "acctIconCash": "Efectivo",
+  "acctIconDigital": "Digital",
+  "acctIconInvestment": "Inversión",
+  "acctIconBusiness": "Negocio",
+  "acctIconHome": "Casa",
+  "newAccount": "Nueva cuenta",
+  "editAccount": "Editar cuenta",
+  "addAccount": "Agregar cuenta",
+  "noAccounts": "Sin cuentas registradas",
+  "importCsvButton": "Importar CSV",
+  "initialBalanceLabel": "Balance inicial",
+  "initialBalanceHelper": "Usa negativo para deudas (tarjeta de crédito)",
+  "iconLabel": "Ícono",
+  "colorLabel": "Color",
+  "currencyFieldLabel": "Moneda",
+  "paywallDesktopNotice": "Las suscripciones se gestionan desde la app móvil (Android). Suscríbete desde tu teléfono y luego usa \"Restaurar\" aquí.",
+  "productUnavailable": "Producto no disponible. Intenta más tarde.",
+  "paywallDesktopBanner": "Suscríbete desde la app en tu teléfono Android. Luego usa \"Restaurar\" aquí para activar el plan.",
+  "pricePerMonth": "{price} / mes",
+  "@pricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerYearSave": "{price} / año (ahorra 44%)",
+  "@pricePerYearSave": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "vesPerMonth": "≈ {value} / mes",
+  "@vesPerMonth": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "vesPerYear": "≈ {value} / año",
+  "@vesPerYear": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "parallelRateRef": "Ref. tasa paralela: Bs. {rate}/$",
+  "@parallelRateRef": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "planActiveNamed": "Plan {label} activo",
+  "@planActiveNamed": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "expiresOn": "Vence el {date}",
+  "@expiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "noExpiry": "Sin fecha de vencimiento",
+  "planColFree": "Gratis",
+  "planColFamily": "Familiar",
+  "planColPremium": "Premium",
+  "featUnlimitedTx": "Transacciones ilimitadas",
+  "featBudgetsGoals": "Presupuestos y metas",
+  "featCustomCategories": "Categorías personalizadas",
+  "featGroupMembers": "Miembros del grupo",
+  "featExportPdfCsv": "Exportar PDF y CSV",
+  "featOcr": "OCR de comprobantes",
+  "featDesktopApp": "App de escritorio",
+  "featAiInsights": "IA: insights financieros",
+  "featPrioritySupport": "Soporte prioritario",
+  "upTo": "Hasta {count}",
+  "@upTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sumTransactions": "transacciones",
+  "sumCategories": "categorías",
+  "sumBudgets": "presupuestos",
+  "sumGoals": "metas",
+  "sumInvestments": "inversiones",
+  "sumEnvelopes": "sobres",
+  "sumAccounts": "cuentas",
+  "sumRecurring": "recurrentes",
+  "sumEmpty": "vacío",
+  "backupSaved": "Backup guardado en {path}",
+  "@backupSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportError": "Error al exportar: {error}",
+  "@exportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupNewerVersion": "Este backup fue creado con una versión más reciente de la app. Actualiza la app e intenta de nuevo.",
+  "restoreBackupTitle": "Restaurar backup",
+  "restoreBackupWarning": "Se importarán los datos del backup ({summary}). Los registros existentes con el mismo ID se sobrescribirán.\n\n¿Continuar?",
+  "@restoreBackupWarning": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "recordsRestored": "{count} registros restaurados.",
+  "@recordsRestored": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importError": "Error al importar: {error}",
+  "@importError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "csvExportHeader": "Fecha,Tipo,Monto,Moneda,Equivalente USD,Categoria,Descripcion,Contraparte",
+  "reportTitle": "Reporte {month} {year}",
+  "@reportTitle": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "generatedOn": "Generado: {datetime}",
+  "@generatedOn": {
+    "placeholders": {
+      "datetime": {
+        "type": "String"
+      }
+    }
+  },
+  "pageOf": "Pág. {current} / {total}",
+  "@pageOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfColAmountUsd": "Monto (USD)",
+  "noMovements": "Sin movimientos registrados.",
+  "transferSentShort": "Transf. env.",
+  "transferReceivedShort": "Transf. rec.",
+  "summaryIncomeUsd": "Ingresos (USD)",
+  "summaryExpenseUsd": "Gastos (USD)",
+  "summaryBalanceUsd": "Balance (USD)",
+  "pdfExpensesByCategory": "Gastos por categoría",
+  "pdfMonthMovements": "Movimientos del mes ({count})",
+  "@pdfMonthMovements": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "savedTo": "Guardado: {path}",
+  "@savedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "nameLabel": "Nombre",
+  "categoryNameHint": "Ej: Mascotas, Gimnasio, Farmacia…",
+  "nameEmptyError": "El nombre no puede estar vacío.",
+  "categoryCreateError": "Error al crear la categoría. Intenta de nuevo.",
+  "newCategory": "Nueva categoría",
+  "previewLabel": "Así se verá:",
+  "internalTransferTitle": "Transferencia interna",
+  "profileNotFoundError": "No se encontró tu perfil en el grupo. Recarga la app e intenta de nuevo.",
+  "needAnotherMemberError": "Necesitas al menos otro miembro en el grupo para registrar una transferencia.",
+  "youLabel": "Tú",
+  "transferDescHint": "Ej.: Reembolso cena, cuota alquiler…",
+  "selectReceiverError": "Selecciona el miembro receptor.",
+  "theMemberFallback": "el miembro",
+  "transferRegistered": "Transferencia registrada hacia {name}.",
+  "@transferRegistered": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "memberLabel": "Miembro",
+  "accountsTitle": "Cuentas",
+  "onboardingSkip": "Omitir",
+  "aiInsightsDesc": "Compara 3 meses de historial, analiza metas,\ninversiones y contexto económico venezolano.",
+  "csvRowError": "Fila {row}: {msg}",
+  "@csvRowError": {
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "msg": {
+        "type": "String"
+      }
+    }
+  },
+  "csvErrEmptyDate": "Fecha vacía",
+  "csvErrInvalidDate": "Fecha inválida: \"{value}\"",
+  "@csvErrInvalidDate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "csvErrInvalidAmount": "Monto inválido: \"{value}\"",
+  "@csvErrInvalidAmount": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "csvErrEmptyDebitCredit": "Débito y crédito vacíos o cero",
+  "periodCurrentMonth": "Mes actual",
+  "periodYearToDate": "Año en curso",
+  "periodFullYear": "Año completo (mes a mes)",
+  "periodCustomRange": "Rango personalizado…",
+  "periodSelectTitle": "Ver periodo",
+  "monthlyBreakdownTitle": "Desglose por mes",
+  "balanceShort": "Balance",
+  "primaryCurrencyTitle": "Moneda principal",
+  "primaryCurrencySubtitle": "La moneda en la que ves y registras por defecto"
 }
