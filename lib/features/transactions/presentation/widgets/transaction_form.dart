@@ -403,39 +403,32 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
             ),
             const SizedBox(height: AppSpacing.sm),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(s.currencyInline,
                     style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    children: [
-                      TxTypeBtn(
-                        label: 'USD',
-                        icon: Icons.attach_money,
-                        active: _currency == 'USD',
-                        color: AppColors.primary,
-                        onTap: () => setState(() => _currency = 'USD'),
-                      ),
-                      TxTypeBtn(
-                        label: 'VES',
-                        icon: Icons.money,
-                        active: _currency == 'VES',
-                        color: AppColors.primary,
-                        onTap: () => setState(() => _currency = 'VES'),
-                      ),
-                      TxTypeBtn(
-                        label: 'EUR',
-                        icon: Icons.euro,
-                        active: _currency == 'EUR',
-                        color: AppColors.primary,
-                        onTap: () => setState(() => _currency = 'EUR'),
-                      ),
-                    ],
-                  ),
+                TxTypeBtn(
+                  label: 'USD',
+                  icon: Icons.attach_money,
+                  active: _currency == 'USD',
+                  color: AppColors.primary,
+                  onTap: () => setState(() => _currency = 'USD'),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                TxTypeBtn(
+                  label: 'VES',
+                  icon: Icons.money,
+                  active: _currency == 'VES',
+                  color: AppColors.primary,
+                  onTap: () => setState(() => _currency = 'VES'),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                TxTypeBtn(
+                  label: 'EUR',
+                  icon: Icons.euro,
+                  active: _currency == 'EUR',
+                  color: AppColors.primary,
+                  onTap: () => setState(() => _currency = 'EUR'),
                 ),
               ],
             ),
