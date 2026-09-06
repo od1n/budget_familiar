@@ -10,7 +10,6 @@ import '../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../features/transactions/presentation/pages/transactions_page.dart';
 import '../features/budgets/presentation/pages/budgets_page.dart';
 import '../features/envelopes/presentation/pages/envelopes_page.dart';
-import '../features/investments/presentation/pages/investments_page.dart';
 import '../features/savings/presentation/pages/savings_page.dart';
 import '../features/family/presentation/pages/family_page.dart';
 import '../features/accounts/presentation/pages/accounts_page.dart';
@@ -137,11 +136,6 @@ GoRouter appRouter(AppRouterRef ref) {
             path: AppRoutes.envelopes,
             pageBuilder: (_, __) =>
                 const NoTransitionPage(child: EnvelopesPage()),
-          ),
-          GoRoute(
-            path: AppRoutes.investments,
-            pageBuilder: (_, __) =>
-                const NoTransitionPage(child: InvestmentsPage()),
           ),
           GoRoute(
             path: AppRoutes.family,

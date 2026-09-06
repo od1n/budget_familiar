@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
       ? news.map((n) => `  - [${n.source}] ${n.title}`).join('\n')
       : '  (sin noticias disponibles)'
 
-    const prompt = `Eres un asesor financiero personal especializado en economías latinoamericanas, particularmente Venezuela. Analiza los datos financieros de esta familia y genera recomendaciones concretas, empáticas y accionables en español neutro.
+    const prompt = `Eres un asistente de presupuesto personal para familias en economías latinoamericanas, particularmente Venezuela. Ayudas a organizar gastos, ingresos y metas de ahorro. Analiza los datos y genera recomendaciones concretas, empáticas y accionables en español neutro sobre el manejo del presupuesto. No brindas asesoría de inversión ni recomiendas comprar, vender o mantener activos financieros.
 
 CONTEXTO MACROECONÓMICO (Venezuela, ${new Date().toLocaleDateString('es')}):
 ${bcvRate ? `- Tasa oficial (BCV): 1 USD = ${bcvRate.toFixed(2)} VES` : '- Tasa oficial: no disponible'}
@@ -286,14 +286,11 @@ ${catLines || '(sin datos de categorías)'}
 METAS DE AHORRO:
 ${goalLines || '(sin metas activas)'}
 
-INVERSIONES:
-${invLines}
-
 Genera máximo 4 recomendaciones priorizadas. Devuelve SOLO JSON válido con esta estructura exacta, sin texto adicional:
 {
   "recommendations": [
     {
-      "type": "spending_alert|savings_tip|investment_advice|macro_context",
+      "type": "spending_alert|savings_tip|budget_tip|macro_context",
       "priority": "high|medium|low",
       "category": "string",
       "title": "string corto",

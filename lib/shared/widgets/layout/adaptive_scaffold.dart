@@ -95,12 +95,6 @@ List<_NavDest> _destinations(BuildContext context) {
       label: l.navAccounts,
     ),
     _NavDest(
-      route: AppRoutes.investments,
-      icon: const Icon(Icons.trending_up_outlined),
-      activeIcon: const Icon(Icons.trending_up),
-      label: l.navInvestments,
-    ),
-    _NavDest(
       route: AppRoutes.envelopes,
       icon: const Icon(Icons.wallet_outlined),
       activeIcon: const Icon(Icons.wallet),
