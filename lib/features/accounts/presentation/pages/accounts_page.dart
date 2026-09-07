@@ -35,7 +35,7 @@ const _kAccountIcons = [
   ('payments', 'Pagos'),
   ('attach_money', 'Efectivo'),
   ('phone_android', 'Digital'),
-  ('trending_up', 'Inversión'),
+  ('trending_up', 'Ahorros'),
   ('store', 'Negocio'),
   ('home', 'Casa'),
 ];
@@ -45,7 +45,7 @@ const _kAccountTypes = [
   ('bank', 'Cuenta bancaria'),
   ('digital', 'Billetera digital'),
   ('credit', 'Tarjeta de crédito'),
-  ('investment', 'Inversión'),
+  ('investment', 'Ahorros'),
 ];
 
 String _accountTypeLabel(BuildContext context, String type) => switch (type) {

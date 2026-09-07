@@ -127,7 +127,7 @@ class CategoriesDao extends DatabaseAccessor<AppDatabase>
       _sys('sys_freelance', 'Freelance', 'laptop', '#2980B9', 'income', 2),
       _sys(
         'sys_investments',
-        'Inversiones',
+        'Ahorros',
         'trending_up',
         '#8E44AD',
         'income',

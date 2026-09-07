@@ -45,7 +45,6 @@ abstract final class AppRoutes {
   static const transactions = '/transactions';
   static const budgets = '/budgets';
   static const envelopes  = '/envelopes';
-  static const investments = '/investments';
   static const savings = '/savings';
   static const family = '/family';
   static const accounts = '/accounts';

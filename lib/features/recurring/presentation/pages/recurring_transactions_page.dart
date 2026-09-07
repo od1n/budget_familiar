@@ -46,7 +46,7 @@ const _kSystemCategories = <(String, String, String)>[
   ('sys_other', 'Otros gastos', 'more_horiz'),
   ('sys_income_salary', 'Salario', 'work'),
   ('sys_income_freelance', 'Freelance', 'laptop'),
-  ('sys_income_investment', 'Inversiones', 'trending_up'),
+  ('sys_income_investment', 'Ahorros', 'trending_up'),
   ('sys_income_other', 'Otros ingresos', 'attach_money'),
 ];
 
