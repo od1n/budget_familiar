@@ -67,6 +67,9 @@ dependencies:
   file_selector: ^1.0.3       # Selector de archivo en desktop (evita freeze de image_picker_windows)
   google_fonts: ^6.2.1        # Fuente Inter sin necesidad de TTF locales
 
+  # === RECONOCIMIENTO DE VOZ ===
+  speech_to_text: ^7.0.0      # Dictado de movimientos (Android/iOS; no Windows)
+
   # === UTILIDADES ===
   uuid: ^4.4.2
   freezed_annotation: ^2.4.4

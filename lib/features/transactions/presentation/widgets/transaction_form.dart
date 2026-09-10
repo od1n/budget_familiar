@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/services/ai_proxy_service.dart';
 import '../../../../core/services/exchange_rate_service.dart';
 import '../../../../core/services/ocr_service.dart';
 import '../../../../core/utils/category_utils.dart';
@@ -261,6 +263,72 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
     });
   }
 
+  // ── Registro rápido por texto/voz ─────────────────────────────────────────
+
+  Future<void> _quickParse() async {
+    if (!ref.read(isPremiumProvider)) {
+      await Navigator.of(context, rootNavigator: true).push<void>(
+        MaterialPageRoute(builder: (_) => const PaywallPage()),
+      );
+      return;
+    }
+    final text = await showDialog<String>(
+      context: context,
+      builder: (_) => const _VoiceInputDialog(),
+    );
+    if (text == null || text.isEmpty || !mounted) return;
+
+    setState(() => _ocrLoading = true);
+    try {
+      final res = await AiProxyService.instance.parseText(text: text);
+      if (!mounted) return;
+      if (!res.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.error == 'pro_required'
+                ? S.of(context).ocrConfigPrompt
+                : (res.error ?? 'Error')),
+            backgroundColor: AppColors.expense,
+          ),
+        );
+        return;
+      }
+      _applyParsed(res);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.of(context).ocrExtracted)),
+      );
+    } finally {
+      if (mounted) setState(() => _ocrLoading = false);
+    }
+  }
+
+  void _applyParsed(AiOcrResult r) {
+    setState(() {
+      final amt = double.tryParse((r.amount ?? '').replaceAll(',', '.'));
+      if (amt != null) _amountCtrl.text = amt.toStringAsFixed(2);
+      if (r.description != null && r.description!.isNotEmpty) {
+        _descCtrl.text = r.description!;
+      }
+      final cur = r.currency?.toUpperCase();
+      if (cur != null && _kCurrencies.contains(cur)) _currency = cur;
+      if (r.date != null) _date = r.date!;
+      if (r.type == 'income' || r.type == 'expense') {
+        _type = r.type!;
+        _categoryId = null;
+      }
+      final hint = r.categoryHint;
+      if (hint != null) {
+        final catId = _hintToCategory(hint);
+        if (catId != null) {
+          _categoryId = catId;
+          _ocrCategoryHint = null;
+        } else {
+          _ocrCategoryHint = hint;
+        }
+      }
+    });
+  }
+
   String? _hintToCategory(String hint) => switch (hint.toLowerCase()) {
         'food' => 'sys_food',
         'transport' => 'sys_transport',
@@ -349,7 +417,16 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                else
+                else ...[
+                  IconButton(
+                    onPressed: _quickParse,
+                    icon: const Icon(Icons.auto_awesome_outlined, size: 20),
+                    tooltip: 'Describir con IA',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
                   TextButton.icon(
                     onPressed: _pickAndOcr,
                     icon: const Icon(Icons.document_scanner_outlined, size: 18),
@@ -358,6 +435,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
+                ],
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -1132,6 +1210,131 @@ class ArsRateBanner extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+// ── Cuadro de dictado / texto para el registro rápido ─────────────────────────
+
+class _VoiceInputDialog extends StatefulWidget {
+  const _VoiceInputDialog();
+
+  @override
+  State<_VoiceInputDialog> createState() => _VoiceInputDialogState();
+}
+
+class _VoiceInputDialogState extends State<_VoiceInputDialog> {
+  final _ctrl = TextEditingController();
+  final _speech = stt.SpeechToText();
+  bool _speechAvailable = false;
+  bool _listening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    try {
+      final ok = await _speech.initialize(
+        onStatus: (s) {
+          if (s == 'done' || s == 'notListening') {
+            if (mounted) setState(() => _listening = false);
+          }
+        },
+        onError: (_) {
+          if (mounted) setState(() => _listening = false);
+        },
+      );
+      if (mounted) setState(() => _speechAvailable = ok);
+    } catch (_) {
+      if (mounted) setState(() => _speechAvailable = false);
+    }
+  }
+
+  Future<void> _toggleListen() async {
+    if (_listening) {
+      await _speech.stop();
+      if (mounted) setState(() => _listening = false);
+      return;
+    }
+    setState(() => _listening = true);
+    await _speech.listen(
+      localeId: 'es_ES',
+      onResult: (r) {
+        if (!mounted) return;
+        setState(() {
+          _ctrl.text = r.recognizedWords;
+          _ctrl.selection = TextSelection.fromPosition(
+            TextPosition(offset: _ctrl.text.length),
+          );
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _speech.stop();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Describe el movimiento'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            minLines: 1,
+            maxLines: 3,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: 'Ej: gasté 500 bolívares en comida',
+              suffixIcon: _speechAvailable
+                  ? IconButton(
+                      icon: Icon(
+                        _listening ? Icons.mic : Icons.mic_none,
+                        color:
+                            _listening ? AppColors.expense : AppColors.primary,
+                      ),
+                      tooltip: _listening ? 'Detener' : 'Dictar',
+                      onPressed: _toggleListen,
+                    )
+                  : null,
+            ),
+          ),
+          if (_listening)
+            const Padding(
+              padding: EdgeInsets.only(top: AppSpacing.sm),
+              child: Text(
+                'Escuchando…',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(S.of(context).cancelButton),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (_listening) await _speech.stop();
+            if (context.mounted) Navigator.pop(context, _ctrl.text.trim());
+          },
+          child: const Text('Analizar'),
+        ),
+      ],
     );
   }
 }

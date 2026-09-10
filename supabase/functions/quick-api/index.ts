@@ -5,10 +5,54 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const LIMITS: Record<string, number> = {
   ocr: 150,
   investment_recommendation: 50,
+  voice_parse: 150,
 };
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+// Modelo por defecto. Se puede sobrescribir con el secreto GEMINI_MODEL sin
+// tocar el codigo, y ademas callGemini() se autorepara si Google lo descontinua.
+const DEFAULT_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash";
 const GEMINI_BASE  = "https://generativelanguage.googleapis.com/v1beta/models";
+
+// Llama a Gemini con autorreparacion: si el modelo fue descontinuado (404 con
+// "use models/<nuevo>"), reintenta una vez con el modelo que Google sugiere.
+async function callGemini(
+  apiKey: string,
+  body: unknown,
+): Promise<{ ok: boolean; status: number; data?: any; error?: string; model: string }> {
+  let model = DEFAULT_MODEL;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(
+      `${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    if (res.ok) {
+      return { ok: true, status: res.status, data: await res.json(), model };
+    }
+    const errText = await res.text();
+    // Google incluye en el mensaje el modelo actual y el sugerido; tomamos el
+    // primero distinto al que acabamos de usar.
+    let next: string | null = null;
+    if (res.status === 404) {
+      const matches = errText.match(/models\/([a-zA-Z0-9.\-]+)/g) ?? [];
+      for (const m of matches) {
+        const name = m.replace("models/", "");
+        if (name !== model) { next = name; break; }
+      }
+    }
+    if (next && attempt === 0) {
+      console.warn(`Modelo ${model} descontinuado; reintentando con ${next}`);
+      model = next;
+      continue;
+    }
+    console.error("Gemini error:", res.status, errText);
+    return { ok: false, status: res.status, error: errText, model };
+  }
+  return { ok: false, status: 500, error: "unreachable", model };
+}
 
 // ── Prompts del sistema ───────────────────────────────────────────────────────
 const OCR_PROMPT = `Analiza esta imagen de un recibo o comprobante de pago.
@@ -21,6 +65,25 @@ Extrae la información y responde ÚNICAMENTE con un JSON válido con este forma
   "currency": "USD|VES|EUR"
 }
 Si no puedes determinar un campo con certeza, usa null. No incluyas texto fuera del JSON.`;
+
+const VOICE_PROMPT = (text: string, today: string) => `Analiza esta frase en espanol donde una persona describe un ingreso o un gasto de dinero.
+Fecha de hoy: ${today}.
+Frase: "${text}"
+
+Responde UNICAMENTE con un JSON valido con este formato exacto:
+{
+  "amount": "123.45",
+  "description": "descripcion corta",
+  "date": "YYYY-MM-DD",
+  "category_hint": "food|transport|health|entertainment|services|clothing|home|other",
+  "currency": "USD|VES|EUR|MXN|ARS",
+  "type": "expense|income"
+}
+Reglas:
+- "type" es "income" si la persona recibio, cobro o gano dinero; "expense" si gasto, pago o compro. Por defecto "expense".
+- Moneda: si menciona bolivares o "Bs" usa "VES"; dolares "USD"; euros "EUR"; pesos mexicanos "MXN"; pesos argentinos "ARS". Por defecto "USD".
+- Si no menciona fecha, usa la fecha de hoy indicada arriba.
+- Si no puedes determinar un campo, usa null. No incluyas texto fuera del JSON.`;
 
 const INVESTMENT_PROMPT_TEMPLATE = (ctx: InvestmentContext) => `
 Eres un asesor financiero personal especializado en el contexto venezolano.
@@ -109,7 +172,7 @@ serve(async (req) => {
   }
 
   const feature = body.feature as string;
-  if (!["ocr", "investment_recommendation"].includes(feature)) {
+  if (!["ocr", "investment_recommendation", "voice_parse"].includes(feature)) {
     return new Response("Invalid feature", { status: 400 });
   }
 
@@ -182,7 +245,25 @@ serve(async (req) => {
           { inline_data: { mime_type: mimeType, data: imageBase64 } },
         ],
       }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 256 },
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 1024,
+        responseMimeType: "application/json",
+      },
+    };
+  } else if (feature === "voice_parse") {
+    const text = (body.text as string ?? "").trim();
+    if (!text) {
+      return new Response("Missing text", { status: 400 });
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    geminiBody = {
+      contents: [{ parts: [{ text: VOICE_PROMPT(text, today) }] }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 1024,
+        responseMimeType: "application/json",
+      },
     };
   } else {
     // investment_recommendation
@@ -192,38 +273,38 @@ serve(async (req) => {
     }
     geminiBody = {
       contents: [{ parts: [{ text: INVESTMENT_PROMPT_TEMPLATE(ctx) }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 2048,
+        responseMimeType: "application/json",
+      },
     };
   }
 
-  const geminiRes = await fetch(
-    `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiBody),
-    }
-  );
-
-  if (!geminiRes.ok) {
-    const errText = await geminiRes.text();
-    console.error("Gemini error:", errText);
+  const gem = await callGemini(apiKey, geminiBody);
+  if (!gem.ok) {
     return new Response(
       JSON.stringify({ error: "gemini_error", message: "Error al llamar la IA." }),
       { status: 502, headers: { "Content-Type": "application/json" } }
     );
   }
-
-  const geminiData = await geminiRes.json();
-  const rawText: string =
-    geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  const geminiData = gem.data;
+  // Los modelos nuevos pueden partir la respuesta en varios "parts"
+  // (incluido un bloque de razonamiento): unimos el texto de todos.
+  const parts = geminiData?.candidates?.[0]?.content?.parts;
+  const rawText: string = Array.isArray(parts)
+    ? parts.map((p: { text?: string }) => p?.text ?? "").join("")
+    : "";
 
   // Extraer JSON de la respuesta (puede venir con markdown)
   const jsonMatch = rawText.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     console.error("No JSON en respuesta Gemini:", rawText);
     return new Response(
-      JSON.stringify({ error: "parse_error", message: "Respuesta IA inválida." }),
+      JSON.stringify({
+        error: "parse_error",
+        message: `Sin JSON [${gem.model}]: ${(rawText || "(vacío)").slice(0, 300)}`,
+      }),
       { status: 502, headers: { "Content-Type": "application/json" } }
     );
   }

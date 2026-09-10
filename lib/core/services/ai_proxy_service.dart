@@ -15,6 +15,7 @@ class AiOcrResult {
     this.date,
     this.categoryHint,
     this.currency,
+    this.type,
     this.error,
   });
 
@@ -23,6 +24,7 @@ class AiOcrResult {
   final DateTime? date;
   final String? categoryHint;
   final String? currency;
+  final String? type; // 'expense' | 'income' (solo en interpretación por texto/voz)
   final String? error;
 
   bool get isSuccess => error == null;
@@ -157,12 +159,56 @@ class AiProxyService {
       date = DateTime.tryParse(rawDate);
     }
     return AiOcrResult(
-      amount: r['amount'] as String?,
+      amount: r['amount']?.toString(),
       description: r['description'] as String?,
       date: date,
       categoryHint: r['category_hint'] as String?,
       currency: r['currency'] as String?,
+      type: r['type'] as String?,
     );
+  }
+
+  // ── Interpretación de texto/voz ────────────────────────────────────────────
+
+  /// Envía una frase en lenguaje natural (escrita o dictada) al proxy y retorna
+  /// los datos del movimiento interpretados. Usa la misma cuota que el OCR.
+  Future<AiOcrResult> parseText({
+    required String text,
+    String? byokKey,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'feature': 'voice_parse',
+        'text': text,
+        if (byokKey != null) 'byok_key': byokKey,
+      };
+
+      final response = await supabase.functions.invoke(
+        _functionName,
+        body: body,
+      );
+
+      if (response.status == 403) {
+        return const AiOcrResult(error: 'pro_required');
+      }
+      if (response.status == 429) {
+        final msg = (response.data as Map?)?['message'] as String? ??
+            'Límite mensual alcanzado.';
+        return AiOcrResult(error: msg);
+      }
+      if (response.status != 200) {
+        return AiOcrResult(
+          error: (response.data as Map?)?['message'] as String? ??
+              'Error del servidor.',
+        );
+      }
+
+      final result = (response.data as Map)['result'] as Map<String, dynamic>;
+      return _parseOcrResult(result);
+    } catch (e) {
+      _log.w('AiProxyService.parseText error: $e');
+      return AiOcrResult(error: 'Error de conexión: $e');
+    }
   }
 
   // ── Recomendaciones de inversión ──────────────────────────────────────────

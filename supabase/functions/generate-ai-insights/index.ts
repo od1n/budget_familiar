@@ -306,27 +306,58 @@ Genera máximo 4 recomendaciones priorizadas. Devuelve SOLO JSON válido con est
     const geminiKey = Deno.env.get('GEMINI_API_KEY')
     if (!geminiKey) return json({ error: 'gemini_not_configured' }, 500)
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
-        }),
+    // Modelo por defecto (sobrescribible con el secreto GEMINI_MODEL) con
+    // autorreparacion: si Google lo descontinua, reintenta con el sugerido.
+    const DEFAULT_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.6-flash'
+    const geminiBase = 'https://generativelanguage.googleapis.com/v1beta/models'
+    const genBody = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 2048,
+        responseMimeType: 'application/json',
       },
-    )
-
-    if (!geminiRes.ok) {
-      const err = await geminiRes.text()
-      console.error('Gemini error:', err)
-      return json({ error: 'ai_error', detail: err }, 500)
     }
 
-    const geminiData = await geminiRes.json()
-    const rawText: string =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    let usedModel = DEFAULT_MODEL
+    // deno-lint-ignore no-explicit-any
+    let geminiData: any = null
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const geminiRes = await fetch(
+        `${geminiBase}/${usedModel}:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(genBody),
+        },
+      )
+      if (geminiRes.ok) {
+        geminiData = await geminiRes.json()
+        break
+      }
+      const err = await geminiRes.text()
+      let next: string | null = null
+      if (geminiRes.status === 404) {
+        const matches = err.match(/models\/([a-zA-Z0-9.\-]+)/g) ?? []
+        for (const m of matches) {
+          const name = m.replace('models/', '')
+          if (name !== usedModel) { next = name; break }
+        }
+      }
+      if (next && attempt === 0) {
+        console.warn(`Modelo ${usedModel} descontinuado; reintentando con ${next}`)
+        usedModel = next
+        continue
+      }
+      console.error('Gemini error:', geminiRes.status, err)
+      return json({ error: 'ai_error', detail: err }, 500)
+    }
+    if (!geminiData) return json({ error: 'ai_error' }, 500)
+
+    const parts = geminiData?.candidates?.[0]?.content?.parts
+    const rawText: string = Array.isArray(parts)
+      ? parts.map((p: { text?: string }) => p?.text ?? '').join('')
+      : ''
     const tokensUsed: number =
       (geminiData?.usageMetadata?.promptTokenCount ?? 0) +
       (geminiData?.usageMetadata?.candidatesTokenCount ?? 0)
@@ -354,7 +385,7 @@ Genera máximo 4 recomendaciones priorizadas. Devuelve SOLO JSON válido con est
       macro_context: parsed.macro_context_summary ?? null,
       overall_health_score: parsed.overall_health_score ?? null,
       news_sources: news.length > 0 ? news : null,
-      model_used: 'gemini-2.0-flash-lite',
+      model_used: usedModel,
       tokens_used: tokensUsed,
       context_snapshot: {
         current_month: curr,
