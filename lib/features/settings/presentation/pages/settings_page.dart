@@ -96,6 +96,24 @@ class _CurrencySection extends ConsumerWidget {
                     .read(displayPrefsProvider.notifier)
                     .setPrimaryCurrency('EUR'),
               ),
+              const Divider(height: 1, indent: AppSpacing.lg),
+              _CurrencyTile(
+                label: 'MXN — Peso mexicano',
+                code: 'MXN',
+                selected: prefs.primaryCurrency == 'MXN',
+                onTap: () => ref
+                    .read(displayPrefsProvider.notifier)
+                    .setPrimaryCurrency('MXN'),
+              ),
+              const Divider(height: 1, indent: AppSpacing.lg),
+              _CurrencyTile(
+                label: 'ARS — Peso argentino',
+                code: 'ARS',
+                selected: prefs.primaryCurrency == 'ARS',
+                onTap: () => ref
+                    .read(displayPrefsProvider.notifier)
+                    .setPrimaryCurrency('ARS'),
+              ),
             ],
           ),
         ),

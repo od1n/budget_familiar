@@ -92,7 +92,11 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
   String? _accountId;
   bool _ocrLoading = false;
   String _rateType = 'parallel';
+  String _arsRate = 'blue';
   String? _ocrCategoryHint;
+
+  // Monedas soportadas por la aplicación.
+  static const _kCurrencies = ['USD', 'VES', 'EUR', 'MXN', 'ARS'];
 
   List<CategoriesTableData> _categories = [];
 
@@ -241,7 +245,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       }
       if (result.currency != null) {
         final cur = result.currency!.toUpperCase();
-        if (cur == 'USD' || cur == 'VES' || cur == 'EUR') _currency = cur;
+        if (_kCurrencies.contains(cur)) _currency = cur;
       }
       if (result.date != null) _date = result.date!;
       if (result.categoryHint != null) {
@@ -402,41 +406,32 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
               },
             ),
             const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Text(s.currencyInline,
-                    style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(width: AppSpacing.sm),
-                TxTypeBtn(
-                  label: 'USD',
-                  icon: Icons.attach_money,
-                  active: _currency == 'USD',
-                  color: AppColors.primary,
-                  onTap: () => setState(() => _currency = 'USD'),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                TxTypeBtn(
-                  label: 'VES',
-                  icon: Icons.money,
-                  active: _currency == 'VES',
-                  color: AppColors.primary,
-                  onTap: () => setState(() => _currency = 'VES'),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                TxTypeBtn(
-                  label: 'EUR',
-                  icon: Icons.euro,
-                  active: _currency == 'EUR',
-                  color: AppColors.primary,
-                  onTap: () => setState(() => _currency = 'EUR'),
-                ),
-              ],
+            Text(s.currencyInline,
+                style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: _kCurrencies
+                  .map(
+                    (c) => _CurrencyChip(
+                      label: c,
+                      active: _currency == c,
+                      onTap: () => setState(() => _currency = c),
+                    ),
+                  )
+                  .toList(),
             ),
             const SizedBox(height: AppSpacing.md),
             if (_currency == 'VES')
               VesRateBanner(
                 rateType: _rateType,
                 onRateTypeChanged: (v) => setState(() => _rateType = v),
+              ),
+            if (_currency == 'ARS')
+              ArsRateBanner(
+                rateType: _arsRate,
+                onRateTypeChanged: (v) => setState(() => _arsRate = v),
               ),
             TextFormField(
               controller: _descCtrl,
@@ -633,6 +628,16 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       final rates = ref.read(vesRatesProvider).valueOrNull;
       final usdPerEur = rates?.usdPerEur ?? 0; // forex real EUR/USD
       if (usdPerEur > 0) usdEquiv = amount * usdPerEur;
+    } else if (_currency == 'MXN') {
+      final rates = ref.read(vesRatesProvider).valueOrNull;
+      final r = rates?.usdMxn ?? 0;
+      if (r > 0) usdEquiv = amount / r;
+    } else if (_currency == 'ARS') {
+      final rates = ref.read(vesRatesProvider).valueOrNull;
+      final r = _arsRate == 'oficial'
+          ? (rates?.usdArsOficial ?? 0)
+          : (rates?.usdArsBlue ?? 0);
+      if (r > 0) usdEquiv = amount / r;
     } else {
       usdEquiv = amount;
     }
@@ -1000,4 +1005,128 @@ class _RateToggleChip extends StatelessWidget {
           ),
         ),
       );
+}
+
+// ── Chip de moneda ────────────────────────────────────────────────────────────
+
+class _CurrencyChip extends StatelessWidget {
+  const _CurrencyChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+            color: active
+                ? AppColors.primary.withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: active ? AppColors.primary : AppColors.border,
+              width: active ? 1.5 : 1.0,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+              color: active ? AppColors.primary : AppColors.textSecondary,
+            ),
+          ),
+        ),
+      );
+}
+
+// ── Banner tasas ARS (oficial / blue) ─────────────────────────────────────────
+
+class ArsRateBanner extends ConsumerWidget {
+  const ArsRateBanner({
+    super.key,
+    required this.rateType,
+    required this.onRateTypeChanged,
+  });
+
+  final String rateType; // 'oficial' | 'blue'
+  final ValueChanged<String> onRateTypeChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ratesAsync = ref.watch(vesRatesProvider);
+    final fmt = NumberFormat('#,##0.00', 'es');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: ratesAsync.when(
+        loading: () => Text(
+          S.of(context).rateLoading,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
+        error: (_, __) => Text(
+          S.of(context).rateUnavailable,
+          style: const TextStyle(fontSize: 12, color: AppColors.expense),
+        ),
+        data: (rates) {
+          final oficial = rates?.usdArsOficial ?? 0;
+          final blue = rates?.usdArsBlue ?? 0;
+          if (oficial <= 0 && blue <= 0) {
+            return Text(
+              S.of(context).rateUnavailable,
+              style: const TextStyle(fontSize: 12, color: AppColors.expense),
+            );
+          }
+          final selected = rateType == 'oficial' ? oficial : blue;
+          return Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.sm,
+            runSpacing: 4,
+            children: [
+              Text(
+                S.of(context).rateUseLabel,
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.textSecondary),
+              ),
+              _RateToggleChip(
+                label: 'Oficial',
+                active: rateType == 'oficial',
+                onTap: () => onRateTypeChanged('oficial'),
+              ),
+              _RateToggleChip(
+                label: 'Blue',
+                active: rateType == 'blue',
+                onTap: () => onRateTypeChanged('blue'),
+              ),
+              if (selected > 0)
+                Text(
+                  '1 USD = ARS ${fmt.format(selected)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }

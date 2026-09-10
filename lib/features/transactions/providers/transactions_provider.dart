@@ -92,9 +92,18 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
         if (currencyCode == 'USD') {
           usdEquiv = amount;
         } else if (currencyCode == 'EUR') {
-          // EUR→USD con la tasa paralela del euro (usdPerEur = €paralela/paralela)
+          // EUR→USD con la tasa forex real (usdPerEur = EUR/USD del BCE)
           final usdPerEur = rates?.usdPerEur ?? 0;
           if (usdPerEur > 0) usdEquiv = amount * usdPerEur;
+        } else if (currencyCode == 'MXN') {
+          // MXN→USD dividiendo por la tasa MXN por dólar.
+          final r = rates?.usdMxn ?? 0;
+          if (r > 0) usdEquiv = amount / r;
+        } else if (currencyCode == 'ARS') {
+          // ARS→USD: por defecto se usa el blue; si no hay, el oficial.
+          final blue = rates?.usdArsBlue ?? 0;
+          final r = blue > 0 ? blue : (rates?.usdArsOficial ?? 0);
+          if (r > 0) usdEquiv = amount / r;
         } else {
           // VES (u otra moneda cotizada en Bs.) → USD con la tasa paralela
           final rate = rates?.parallel ?? 0;

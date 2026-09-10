@@ -387,14 +387,22 @@ class _BalanceCardContent extends ConsumerWidget {
     final isBcv = prefs.rate == 'bcv';
     final rateVal = isBcv ? (rates?.bcv ?? 0) : (rates?.parallel ?? 0);
     final eurUsd = rates?.eurUsd ?? 0; // USD por 1 EUR (forex real)
+    final usdMxn = rates?.usdMxn ?? 0; // MXN por 1 USD
+    final arsBlue = rates?.usdArsBlue ?? 0;
+    final arsOf = rates?.usdArsOficial ?? 0;
+    final arsRate = arsBlue > 0 ? arsBlue : arsOf; // ARS por 1 USD (blue preferido)
     final hasRate = rateVal > 0;
     final hasEur = eurUsd > 0;
-    final hasConv = hasRate || hasEur;
+    final hasMxn = usdMxn > 0;
+    final hasArs = arsRate > 0;
+    final hasConv = hasRate || hasEur || hasMxn || hasArs;
 
     // Moneda de visualización efectiva (cae a USD si falta la tasa necesaria).
     var cur = prefs.currency;
     if (cur == 'VES' && !hasRate) cur = 'USD';
     if (cur == 'EUR' && !hasEur) cur = 'USD';
+    if (cur == 'MXN' && !hasMxn) cur = 'USD';
+    if (cur == 'ARS' && !hasArs) cur = 'USD';
 
     String fmtIn(String c, double usd) {
       switch (c) {
@@ -402,6 +410,10 @@ class _BalanceCardContent extends ConsumerWidget {
           return 'Bs. ${_fmtMoney(usd * rateVal)}';
         case 'EUR':
           return '€ ${_fmtMoney(eurUsd > 0 ? usd / eurUsd : usd)}';
+        case 'MXN':
+          return 'MX\$ ${_fmtMoney(usdMxn > 0 ? usd * usdMxn : usd)}';
+        case 'ARS':
+          return 'AR\$ ${_fmtMoney(arsRate > 0 ? usd * arsRate : usd)}';
         default:
           return '\$ ${_fmtMoney(usd)}';
       }
@@ -419,6 +431,8 @@ class _BalanceCardContent extends ConsumerWidget {
       'USD',
       if (hasRate) 'VES',
       if (hasEur) 'EUR',
+      if (hasMxn) 'MXN',
+      if (hasArs) 'ARS',
     ];
     final rateLabel = isBcv ? 'BCV' : 'Paralela';
     return Card(
@@ -473,25 +487,29 @@ class _BalanceCardContent extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-              Row(
-                children: [
-                  _MiniToggle(
-                    options: currencyOptions,
-                    selected: cur,
-                    onChanged: (v) =>
-                        ref.read(displayPrefsProvider.notifier).setCurrency(v),
-                  ),
-                  if (hasRate) ...[
-                    const SizedBox(width: AppSpacing.sm),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
                     _MiniToggle(
-                      options: const ['parallel', 'bcv'],
-                      labels: const ['Paralela', 'BCV'],
-                      selected: prefs.rate,
-                      onChanged: (v) =>
-                          ref.read(displayPrefsProvider.notifier).setRate(v),
+                      options: currencyOptions,
+                      selected: cur,
+                      onChanged: (v) => ref
+                          .read(displayPrefsProvider.notifier)
+                          .setCurrency(v),
                     ),
+                    if (hasRate) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      _MiniToggle(
+                        options: const ['parallel', 'bcv'],
+                        labels: const ['Paralela', 'BCV'],
+                        selected: prefs.rate,
+                        onChanged: (v) =>
+                            ref.read(displayPrefsProvider.notifier).setRate(v),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ],
             if (summary.hasMixedCurrencies) ...[
