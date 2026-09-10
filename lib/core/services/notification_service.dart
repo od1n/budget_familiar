@@ -336,6 +336,41 @@ class NotificationService {
     }
   }
 
+  // ── Recordatorio de pago programado ───────────────────────────────────────
+
+  /// Programa un recordatorio local para una fecha/hora concreta [when].
+  /// Si [when] ya pasó, no hace nada. Reprogramar con el mismo [id] reemplaza
+  /// el recordatorio anterior (idempotente).
+  Future<void> scheduleReminder({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+  }) async {
+    if (!_ready) return;
+    try {
+      final scheduled = tz.TZDateTime.from(when, tz.local);
+      if (scheduled.isBefore(tz.TZDateTime.now(tz.local))) return;
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduled,
+        _buildDetails(
+          channelId: 'payment_reminders',
+          channelName: 'Recordatorios de pagos',
+          channelDescription:
+              'Avisos de pagos e ingresos programados próximos a vencer.',
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e) {
+      _log.w('NotificationService: fallo en scheduleReminder: $e');
+    }
+  }
+
   // ── Helpers internos ──────────────────────────────────────────────────────
 
   /// Construye [NotificationDetails] para todas las plataformas a partir de

@@ -14,6 +14,7 @@ import '../features/savings/presentation/pages/savings_page.dart';
 import '../features/family/presentation/pages/family_page.dart';
 import '../features/accounts/presentation/pages/accounts_page.dart';
 import '../features/recurring/presentation/pages/recurring_transactions_page.dart';
+import '../features/agenda/presentation/pages/agenda_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/subscription/presentation/pages/paywall_page.dart';
 import '../features/onboarding/presentation/pages/onboarding_page.dart';
@@ -49,6 +50,7 @@ abstract final class AppRoutes {
   static const family = '/family';
   static const accounts = '/accounts';
   static const recurring = '/recurring';
+  static const agenda = '/agenda';
   static const settings = '/settings';
   static const paywall = '/paywall';
 }
@@ -107,6 +109,10 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: AppRoutes.register,
         pageBuilder: (_, __) => const NoTransitionPage(child: RegisterPage()),
+      ),
+      GoRoute(
+        path: AppRoutes.agenda,
+        pageBuilder: (_, __) => const NoTransitionPage(child: AgendaPage()),
       ),
       ShellRoute(
         builder: (_, __, child) => AdaptiveScaffold(child: child),

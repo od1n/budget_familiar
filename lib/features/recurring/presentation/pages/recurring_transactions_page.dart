@@ -96,14 +96,19 @@ class RecurringTransactionsPage extends ConsumerWidget {
   ) {
     final customCatsAsync = ref.read(customCategoriesProvider);
     final customCats = customCatsAsync.valueOrNull ?? [];
+    // Capturamos el notifier mientras `ref` es válido (antes de abrir el
+    // diálogo). Llamar a `ref.read` dentro del callback asíncrono fallaba con
+    // "Cannot use ref after the widget was disposed" porque la página deja de
+    // estar montada mientras el diálogo está abierto; esa excepción no
+    // capturada dejaba el botón "Crear" girando para siempre.
+    final notifier = ref.read(recurringNotifierProvider.notifier);
 
     showDialog<void>(
       context: context,
-      builder: (_) => _RecurringForm(
+      builder: (dialogContext) => _RecurringForm(
         existing: existing,
         customCategories: customCats,
         onSave: (params) async {
-          final notifier = ref.read(recurringNotifierProvider.notifier);
           bool ok;
           if (existing == null) {
             ok = await notifier.create(
@@ -129,7 +134,7 @@ class RecurringTransactionsPage extends ConsumerWidget {
               dayOfMonth: params.dayOfMonth,
             );
           }
-          if (ok && context.mounted) Navigator.of(context).pop();
+          if (ok && dialogContext.mounted) Navigator.of(dialogContext).pop();
         },
       ),
     );
@@ -140,6 +145,8 @@ class RecurringTransactionsPage extends ConsumerWidget {
     WidgetRef ref,
     RecurringTransactionsTableData template,
   ) async {
+    // Igual que en el alta: capturamos el notifier antes de esperar el diálogo.
+    final notifier = ref.read(recurringNotifierProvider.notifier);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -161,7 +168,7 @@ class RecurringTransactionsPage extends ConsumerWidget {
       ),
     );
     if (confirmed == true) {
-      await ref.read(recurringNotifierProvider.notifier).delete(template.id);
+      await notifier.delete(template.id);
     }
   }
 }

@@ -17,6 +17,7 @@ import '../../../family/providers/family_provider.dart';
 import '../../../subscription/providers/subscription_provider.dart';
 import '../../../accounts/providers/accounts_provider.dart';
 import '../../../recurring/providers/recurring_transactions_provider.dart';
+import '../../../agenda/presentation/pages/agenda_page.dart';
 import '../../../../core/services/insights_service.dart';
 import '../../../../core/utils/category_utils.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -58,6 +59,8 @@ class DashboardPage extends ConsumerWidget {
           ],
           const SizedBox(height: AppSpacing.lg),
           const _AccountsSummarySection(),
+          const SizedBox(height: AppSpacing.lg),
+          const UpcomingPaymentsCard(),
           _SectionTitle(s.trendTitle),
           const SizedBox(height: AppSpacing.sm),
           const _TrendBarChart(),

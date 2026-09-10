@@ -27,6 +27,14 @@ class RecurringNotifier extends StateNotifier<AsyncValue<void>> {
   final AppDatabase _db;
   final String _groupId;
 
+  /// Asigna el estado solo si el notifier sigue vivo. El proveedor es
+  /// autoDispose y puede desecharse durante la pausa del `await` de una
+  /// escritura; sin esta comprobación, asignar el estado después lanzaría un
+  /// error.
+  void _setState(AsyncValue<void> value) {
+    if (mounted) state = value;
+  }
+
   /// Crea una nueva plantilla recurrente.
   Future<bool> create({
     required double amount,
@@ -38,7 +46,7 @@ class RecurringNotifier extends StateNotifier<AsyncValue<void>> {
     String? description,
     int? dayOfMonth,
   }) async {
-    state = const AsyncLoading();
+    _setState(const AsyncLoading());
     try {
       final userId = supabase.currentUserId;
       await _db.recurringTransactionsDao.insert(
@@ -57,10 +65,10 @@ class RecurringNotifier extends StateNotifier<AsyncValue<void>> {
           isActive: const Value(true),
         ),
       );
-      state = const AsyncData(null);
+      _setState(const AsyncData(null));
       return true;
     } catch (e, st) {
-      state = AsyncError(e, st);
+      _setState(AsyncError(e, st));
       return false;
     }
   }
@@ -77,7 +85,7 @@ class RecurringNotifier extends StateNotifier<AsyncValue<void>> {
     String? description,
     int? dayOfMonth,
   }) async {
-    state = const AsyncLoading();
+    _setState(const AsyncLoading());
     try {
       final userId = supabase.currentUserId;
       await _db.recurringTransactionsDao.update_(
@@ -95,10 +103,10 @@ class RecurringNotifier extends StateNotifier<AsyncValue<void>> {
           description: Value(description),
         ),
       );
-      state = const AsyncData(null);
+      _setState(const AsyncData(null));
       return true;
     } catch (e, st) {
-      state = AsyncError(e, st);
+      _setState(AsyncError(e, st));
       return false;
     }
   }
@@ -121,13 +129,13 @@ class RecurringNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Elimina permanentemente una plantilla.
   Future<bool> delete(String id) async {
-    state = const AsyncLoading();
+    _setState(const AsyncLoading());
     try {
       await _db.recurringTransactionsDao.delete_(id);
-      state = const AsyncData(null);
+      _setState(const AsyncData(null));
       return true;
     } catch (e, st) {
-      state = AsyncError(e, st);
+      _setState(AsyncError(e, st));
       return false;
     }
   }
