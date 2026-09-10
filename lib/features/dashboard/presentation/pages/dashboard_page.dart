@@ -385,7 +385,9 @@ class _BalanceCardContent extends ConsumerWidget {
     final rates = ref.watch(vesRatesProvider).valueOrNull;
     final prefs = ref.watch(displayPrefsProvider);
     final isBcv = prefs.rate == 'bcv';
-    final rateVal = isBcv ? (rates?.bcv ?? 0) : (rates?.parallel ?? 0);
+    final autoRate = isBcv ? (rates?.bcv ?? 0) : (rates?.parallel ?? 0);
+    final manualVes = prefs.manualVesRate; // Bs. por 1 USD; 0 = automática
+    final rateVal = manualVes > 0 ? manualVes : autoRate;
     final eurUsd = rates?.eurUsd ?? 0; // USD por 1 EUR (forex real)
     final usdMxn = rates?.usdMxn ?? 0; // MXN por 1 USD
     final arsBlue = rates?.usdArsBlue ?? 0;
@@ -434,7 +436,7 @@ class _BalanceCardContent extends ConsumerWidget {
       if (hasMxn) 'MXN',
       if (hasArs) 'ARS',
     ];
-    final rateLabel = isBcv ? 'BCV' : 'Paralela';
+    final rateLabel = manualVes > 0 ? 'Manual' : (isBcv ? 'BCV' : 'Paralela');
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),

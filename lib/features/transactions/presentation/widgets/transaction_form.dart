@@ -619,10 +619,15 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
 
     double? usdEquiv;
     if (_currency == 'VES') {
-      final rates = ref.read(vesRatesProvider).valueOrNull;
-      if (rates != null && rates.bcv > 0) {
-        final rate = _rateType == 'bcv' ? rates.bcv : rates.parallel;
-        if (rate > 0) usdEquiv = amount / rate;
+      final manualVes = ref.read(displayPrefsProvider).manualVesRate;
+      if (manualVes > 0) {
+        usdEquiv = amount / manualVes;
+      } else {
+        final rates = ref.read(vesRatesProvider).valueOrNull;
+        if (rates != null && rates.bcv > 0) {
+          final rate = _rateType == 'bcv' ? rates.bcv : rates.parallel;
+          if (rate > 0) usdEquiv = amount / rate;
+        }
       }
     } else if (_currency == 'EUR') {
       final rates = ref.read(vesRatesProvider).valueOrNull;

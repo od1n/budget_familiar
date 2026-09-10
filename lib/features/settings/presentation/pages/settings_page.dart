@@ -41,6 +41,8 @@ class SettingsPage extends ConsumerWidget {
         children: const [
           _CurrencySection(),
           SizedBox(height: AppSpacing.x2l),
+          _ManualRateSection(),
+          SizedBox(height: AppSpacing.x2l),
           _OcrSection(),
           SizedBox(height: AppSpacing.x2l),
           _ThemeSection(),
@@ -146,6 +148,115 @@ class _CurrencyTile extends StatelessWidget {
             : null,
         onTap: onTap,
       );
+}
+
+// ── Sección Tasa manual del bolívar ───────────────────────────────────────────
+
+class _ManualRateSection extends ConsumerStatefulWidget {
+  const _ManualRateSection();
+
+  @override
+  ConsumerState<_ManualRateSection> createState() => _ManualRateSectionState();
+}
+
+class _ManualRateSectionState extends ConsumerState<_ManualRateSection> {
+  final _ctrl = TextEditingController();
+  bool _init = false;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final prefs = ref.watch(displayPrefsProvider);
+    if (!_init) {
+      _init = true;
+      if (prefs.manualVesRate > 0) {
+        _ctrl.text = prefs.manualVesRate.toStringAsFixed(2);
+      }
+    }
+    final active = prefs.manualVesRate > 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(
+          icon: Icons.tune,
+          title: 'Tasa manual del bolívar',
+          subtitle:
+              'Fija tú la tasa (Bs. por 1 USD) en vez de la automática. '
+              'Déjala vacía para volver a la automática.',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _ctrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Bs. por 1 USD',
+                    prefixText: 'Bs. ',
+                    hintText: 'Ej: 40.00',
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: active
+                            ? () {
+                                _ctrl.clear();
+                                ref
+                                    .read(displayPrefsProvider.notifier)
+                                    .setManualVesRate(0);
+                                FocusScope.of(context).unfocus();
+                              }
+                            : null,
+                        child: const Text('Usar automática'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final v = double.tryParse(_ctrl.text.trim()) ?? 0;
+                          ref
+                              .read(displayPrefsProvider.notifier)
+                              .setManualVesRate(v);
+                          FocusScope.of(context).unfocus();
+                        },
+                        child: const Text('Guardar tasa'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (active) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Usando tu tasa manual: Bs. '
+                    '${prefs.manualVesRate.toStringAsFixed(2)} por 1 USD',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ── Sección OCR ───────────────────────────────────────────────────────────────

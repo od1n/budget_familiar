@@ -11,15 +11,26 @@ class DisplayPrefs {
     this.primaryCurrency = 'USD',
     this.currency = 'USD',
     this.rate = 'parallel',
+    this.manualVesRate = 0,
   });
   final String primaryCurrency;
   final String currency;
   final String rate;
-  DisplayPrefs copyWith({String? primaryCurrency, String? currency, String? rate}) =>
+
+  /// Tasa manual del bolívar (Bs. por 1 USD). 0 = usar la tasa automática.
+  final double manualVesRate;
+
+  DisplayPrefs copyWith({
+    String? primaryCurrency,
+    String? currency,
+    String? rate,
+    double? manualVesRate,
+  }) =>
       DisplayPrefs(
         primaryCurrency: primaryCurrency ?? this.primaryCurrency,
         currency: currency ?? this.currency,
         rate: rate ?? this.rate,
+        manualVesRate: manualVesRate ?? this.manualVesRate,
       );
 }
 
@@ -30,6 +41,7 @@ class DisplayPrefsNotifier extends StateNotifier<DisplayPrefs> {
   static const _kPrimary = 'disp_primary';
   static const _kCur = 'disp_currency';
   static const _kRate = 'disp_rate';
+  static const _kManualVes = 'disp_manual_ves';
 
   Future<void> _load() async {
     final p = await SharedPreferences.getInstance();
@@ -39,7 +51,15 @@ class DisplayPrefsNotifier extends StateNotifier<DisplayPrefs> {
       // La primera vez, la moneda mostrada sigue a la principal.
       currency: p.getString(_kCur) ?? primary,
       rate: p.getString(_kRate) ?? 'parallel',
+      manualVesRate: p.getDouble(_kManualVes) ?? 0,
     );
+  }
+
+  /// Fija la tasa manual del bolívar (Bs. por 1 USD). 0 vuelve a la automática.
+  Future<void> setManualVesRate(double v) async {
+    final val = v > 0 ? v : 0.0;
+    state = state.copyWith(manualVesRate: val);
+    (await SharedPreferences.getInstance()).setDouble(_kManualVes, val);
   }
 
   /// Cambia la moneda principal del usuario y ajusta la vista a esa moneda.
