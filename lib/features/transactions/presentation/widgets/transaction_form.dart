@@ -401,43 +401,34 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.existing == null
-                        ? s.newTransactionTitle
-                        : s.editTransactionTitle,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                if (_ocrLoading)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else ...[
-                  IconButton(
-                    onPressed: _quickParse,
-                    icon: const Icon(Icons.auto_awesome_outlined, size: 20),
-                    tooltip: 'Describir con IA',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+            // Accesos a la inteligencia artificial: dictado por voz/texto y
+            // escaneo de recibo (OCR). Botones grandes y visibles arriba del
+            // formulario. El título ya lo muestra la barra superior.
+            if (_ocrLoading)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: const Center(child: CircularProgressIndicator()),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _quickParse,
+                      icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+                      label: const Text('Voz / IA'),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  TextButton.icon(
-                    onPressed: _pickAndOcr,
-                    icon: const Icon(Icons.document_scanner_outlined, size: 18),
-                    label: Text(s.scanReceiptButton),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickAndOcr,
+                      icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                      label: Text(s.scanReceiptButton),
                     ),
                   ),
                 ],
-              ],
-            ),
+              ),
             const SizedBox(height: AppSpacing.lg),
             Row(
               children: [
@@ -1277,6 +1268,15 @@ class _VoiceInputDialogState extends State<_VoiceInputDialog> {
     setState(() => _listening = true);
     await _speech.listen(
       localeId: 'es_ES',
+      // Frases largas: escucha hasta 60 s y tolera pausas de hasta 6 s sin
+      // cortar. El modo "dictado" sigue escuchando a través de las pausas.
+      listenFor: const Duration(seconds: 60),
+      pauseFor: const Duration(seconds: 6),
+      listenOptions: stt.SpeechListenOptions(
+        listenMode: stt.ListenMode.dictation,
+        partialResults: true,
+        cancelOnError: true,
+      ),
       onResult: (r) {
         if (!mounted) return;
         setState(() {
@@ -1306,11 +1306,14 @@ class _VoiceInputDialogState extends State<_VoiceInputDialog> {
           TextField(
             controller: _ctrl,
             autofocus: true,
-            minLines: 1,
-            maxLines: 3,
+            minLines: 3,
+            maxLines: 6,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
               hintText: 'Ej: gasté 500 bolívares en comida',
+              helperText:
+                  'Se analiza todo el texto, aunque no se vea completo aquí.',
+              helperMaxLines: 2,
               suffixIcon: _speechAvailable
                   ? IconButton(
                       icon: Icon(
