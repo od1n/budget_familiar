@@ -13,41 +13,82 @@ const LIMITS: Record<string, number> = {
 const DEFAULT_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash";
 const GEMINI_BASE  = "https://generativelanguage.googleapis.com/v1beta/models";
 
-// Llama a Gemini con autorreparacion: si el modelo fue descontinuado (404 con
-// "use models/<nuevo>"), reintenta una vez con el modelo que Google sugiere.
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Quita generationConfig.thinkingConfig de una copia del cuerpo (para reintentar
+// si un modelo no soporta ese ajuste).
+function stripThinking(body: any): any {
+  if (body && typeof body === "object" && body.generationConfig?.thinkingConfig) {
+    return {
+      ...body,
+      generationConfig: { ...body.generationConfig, thinkingConfig: undefined },
+    };
+  }
+  return body;
+}
+
+// Llama a Gemini con autorreparacion:
+//  - 404 (modelo descontinuado): reintenta con el modelo que Google sugiere.
+//  - 400 (posible ajuste no soportado, p.ej. thinkingConfig): lo quita y
+//    reintenta una vez, para que nunca se rompa del todo.
 async function callGemini(
   apiKey: string,
   body: unknown,
 ): Promise<{ ok: boolean; status: number; data?: any; error?: string; model: string }> {
   let model = DEFAULT_MODEL;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  let currentBody: any = body;
+  let thinkingStripped = false;
+  let transientRetries = 0;
+  for (let attempt = 0; attempt < 6; attempt++) {
     const res = await fetch(
       `${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(currentBody),
       },
     );
     if (res.ok) {
       return { ok: true, status: res.status, data: await res.json(), model };
     }
     const errText = await res.text();
-    // Google incluye en el mensaje el modelo actual y el sugerido; tomamos el
-    // primero distinto al que acabamos de usar.
-    let next: string | null = null;
+
+    // Modelo descontinuado (404): cambiar al modelo sugerido por Google.
     if (res.status === 404) {
       const matches = errText.match(/models\/([a-zA-Z0-9.\-]+)/g) ?? [];
+      let next: string | null = null;
       for (const m of matches) {
         const name = m.replace("models/", "");
         if (name !== model) { next = name; break; }
       }
+      if (next) {
+        console.warn(`Modelo ${model} descontinuado; reintentando con ${next}`);
+        model = next;
+        continue;
+      }
     }
-    if (next && attempt === 0) {
-      console.warn(`Modelo ${model} descontinuado; reintentando con ${next}`);
-      model = next;
+
+    // 400: puede deberse a thinkingConfig no soportado. Lo quitamos y
+    // reintentamos una sola vez.
+    if (res.status === 400 && !thinkingStripped) {
+      const stripped = stripThinking(currentBody);
+      if (stripped !== currentBody) {
+        console.warn("Ajuste no soportado (thinkingConfig); reintentando sin el");
+        currentBody = stripped;
+        thinkingStripped = true;
+        continue;
+      }
+    }
+
+    // Sobrecarga temporal de Google (503/500) o límite de tasa (429):
+    // esperar un poco y reintentar; casi siempre se resuelve solo.
+    if ((res.status === 503 || res.status === 500 || res.status === 429) && transientRetries < 2) {
+      transientRetries++;
+      console.warn(`Gemini ${res.status} temporal; reintento ${transientRetries}`);
+      await sleep(800 * transientRetries);
       continue;
     }
+
     console.error("Gemini error:", res.status, errText);
     return { ok: false, status: res.status, error: errText, model };
   }
@@ -247,8 +288,12 @@ serve(async (req) => {
       }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 1024,
+        // Margen amplio: si el modelo "piensa", el JSON no debe truncarse.
+        maxOutputTokens: 8192,
         responseMimeType: "application/json",
+        // Desactiva el razonamiento interno: esta extracción no lo necesita y
+        // así no consume tokens de salida (evita respuestas cortadas).
+        thinkingConfig: { thinkingBudget: 0 },
       },
     };
   } else if (feature === "voice_parse") {
@@ -261,8 +306,9 @@ serve(async (req) => {
       contents: [{ parts: [{ text: VOICE_PROMPT(text, today) }] }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 4096,
         responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 },
       },
     };
   } else {
@@ -275,8 +321,9 @@ serve(async (req) => {
       contents: [{ parts: [{ text: INVESTMENT_PROMPT_TEMPLATE(ctx) }] }],
       generationConfig: {
         temperature: 0.4,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
         responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 },
       },
     };
   }

@@ -310,25 +310,32 @@ Genera máximo 4 recomendaciones priorizadas. Devuelve SOLO JSON válido con est
     // autorreparacion: si Google lo descontinua, reintenta con el sugerido.
     const DEFAULT_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.6-flash'
     const geminiBase = 'https://generativelanguage.googleapis.com/v1beta/models'
-    const genBody = {
+    // deno-lint-ignore no-explicit-any
+    const genBody: any = {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 2048,
+        // Margen amplio + razonamiento desactivado: el informe no debe truncarse.
+        maxOutputTokens: 8192,
         responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }
 
     let usedModel = DEFAULT_MODEL
     // deno-lint-ignore no-explicit-any
     let geminiData: any = null
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // deno-lint-ignore no-explicit-any
+    let currentBody: any = genBody
+    let thinkingStripped = false
+    let transientRetries = 0
+    for (let attempt = 0; attempt < 6; attempt++) {
       const geminiRes = await fetch(
         `${geminiBase}/${usedModel}:generateContent?key=${geminiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(genBody),
+          body: JSON.stringify(currentBody),
         },
       )
       if (geminiRes.ok) {
@@ -336,19 +343,44 @@ Genera máximo 4 recomendaciones priorizadas. Devuelve SOLO JSON válido con est
         break
       }
       const err = await geminiRes.text()
-      let next: string | null = null
+
+      // Modelo descontinuado (404): cambiar al sugerido por Google.
       if (geminiRes.status === 404) {
+        let next: string | null = null
         const matches = err.match(/models\/([a-zA-Z0-9.\-]+)/g) ?? []
         for (const m of matches) {
           const name = m.replace('models/', '')
           if (name !== usedModel) { next = name; break }
         }
+        if (next) {
+          console.warn(`Modelo ${usedModel} descontinuado; reintentando con ${next}`)
+          usedModel = next
+          continue
+        }
       }
-      if (next && attempt === 0) {
-        console.warn(`Modelo ${usedModel} descontinuado; reintentando con ${next}`)
-        usedModel = next
+
+      // 400: posible thinkingConfig no soportado; lo quitamos y reintentamos.
+      if (geminiRes.status === 400 && !thinkingStripped &&
+          currentBody?.generationConfig?.thinkingConfig) {
+        console.warn('Ajuste no soportado (thinkingConfig); reintentando sin el')
+        currentBody = {
+          ...currentBody,
+          generationConfig: { ...currentBody.generationConfig, thinkingConfig: undefined },
+        }
+        thinkingStripped = true
         continue
       }
+
+      // Sobrecarga temporal de Google (503/500) o límite de tasa (429):
+      // esperar un poco y reintentar; casi siempre se resuelve solo.
+      if ((geminiRes.status === 503 || geminiRes.status === 500 || geminiRes.status === 429) &&
+          transientRetries < 2) {
+        transientRetries++
+        console.warn(`Gemini ${geminiRes.status} temporal; reintento ${transientRetries}`)
+        await new Promise((r) => setTimeout(r, 800 * transientRetries))
+        continue
+      }
+
       console.error('Gemini error:', geminiRes.status, err)
       return json({ error: 'ai_error', detail: err }, 500)
     }
