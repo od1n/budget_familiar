@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_colors.dart';
 import 'core/constants/app_typography.dart';
 import 'core/services/deeplink_service.dart';
+import 'core/services/locale_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/fcm_service.dart';
 import 'core/services/theme_service.dart';
@@ -30,6 +31,7 @@ class BudgetApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router    = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final locale    = ref.watch(localeProvider); // null = idioma del sistema
 
     // Dispara syncDown cada vez que el usuario inicia sesión.
     // ref.listen en build() es seguro: Riverpod gestiona el ciclo de vida
@@ -125,6 +127,7 @@ class BudgetApp extends ConsumerWidget {
       title: 'Budget Familiar',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
+      locale: locale,
       localizationsDelegates: const [
         S.delegate,
         GlobalMaterialLocalizations.delegate,

@@ -15,6 +15,7 @@ import '../../../../core/services/biometric_service.dart';
 import '../../../../core/services/realtime_service.dart';
 import '../../../../core/services/subscription_service.dart';
 import '../../../../core/services/theme_service.dart';
+import '../../../../core/services/locale_service.dart';
 import '../../../../data/local/app_database.dart';
 import '../../../../router/app_router.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -46,6 +47,8 @@ class SettingsPage extends ConsumerWidget {
           _OcrSection(),
           SizedBox(height: AppSpacing.x2l),
           _ThemeSection(),
+          SizedBox(height: AppSpacing.x2l),
+          _LanguageSection(),
           SizedBox(height: AppSpacing.x2l),
           _SubscriptionSection(),
           SizedBox(height: AppSpacing.x2l),
@@ -700,6 +703,79 @@ class _OllamaFields extends StatelessWidget {
 }
 
 // ── Sección Tema ──────────────────────────────────────────────────────────────
+
+// ── Sección Idioma ────────────────────────────────────────────────────────────
+
+class _LanguageSection extends ConsumerWidget {
+  const _LanguageSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(localeProvider)?.languageCode; // null = automático
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(
+          icon: Icons.language_outlined,
+          title: 'Idioma',
+          subtitle: 'Idioma de la aplicación',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Card(
+          child: Column(
+            children: [
+              _LanguageTile(
+                label: 'Automático (idioma del sistema)',
+                icon: Icons.brightness_auto_outlined,
+                selected: current == null,
+                onTap: () => ref.read(localeProvider.notifier).setLocale(null),
+              ),
+              const Divider(height: 1, indent: AppSpacing.lg),
+              _LanguageTile(
+                label: 'Español',
+                icon: Icons.translate_outlined,
+                selected: current == 'es',
+                onTap: () => ref.read(localeProvider.notifier).setLocale('es'),
+              ),
+              const Divider(height: 1, indent: AppSpacing.lg),
+              _LanguageTile(
+                label: 'English',
+                icon: Icons.translate_outlined,
+                selected: current == 'en',
+                onTap: () => ref.read(localeProvider.notifier).setLocale('en'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LanguageTile extends StatelessWidget {
+  const _LanguageTile({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+        leading: Icon(icon,
+            color: selected ? AppColors.primary : AppColors.textSecondary),
+        title: Text(label),
+        trailing: selected
+            ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20)
+            : null,
+        onTap: onTap,
+      );
+}
 
 class _ThemeSection extends ConsumerWidget {
   const _ThemeSection();
