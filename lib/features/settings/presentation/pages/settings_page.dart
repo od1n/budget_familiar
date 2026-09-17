@@ -82,6 +82,15 @@ class _CurrencySection extends ConsumerWidget {
           child: Column(
             children: [
               _CurrencyTile(
+                label: 'Bs. — Bolívar',
+                code: 'VES',
+                selected: prefs.primaryCurrency == 'VES',
+                onTap: () => ref
+                    .read(displayPrefsProvider.notifier)
+                    .setPrimaryCurrency('VES'),
+              ),
+              const Divider(height: 1, indent: AppSpacing.lg),
+              _CurrencyTile(
                 label: 'USD — Dólar',
                 code: 'USD',
                 selected: prefs.primaryCurrency == 'USD',

@@ -502,6 +502,9 @@ class _BalanceCardContent extends ConsumerWidget {
                   children: [
                     _MiniToggle(
                       options: currencyOptions,
+                      labels: currencyOptions
+                          .map((c) => c == 'VES' ? 'Bs.' : c)
+                          .toList(),
                       selected: cur,
                       onChanged: (v) => ref
                           .read(displayPrefsProvider.notifier)

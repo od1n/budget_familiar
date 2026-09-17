@@ -7,6 +7,22 @@ import 'supabase_service.dart';
 
 final _log = Logger();
 
+/// Convierte un error técnico (sin conexión, DNS, socket, tiempo agotado) en un
+/// mensaje claro para el usuario. El detalle técnico queda en el registro (_log).
+String _friendlyError(Object e) {
+  final s = e.toString();
+  if (s.contains('SocketException') ||
+      s.contains('Failed host lookup') ||
+      s.contains('AuthRetryableFetchException') ||
+      s.contains('ClientException') ||
+      s.contains('Connection') ||
+      s.contains('TimeoutException') ||
+      s.contains('timed out')) {
+    return 'Sin conexión con el servidor. Revisa tu internet e inténtalo de nuevo.';
+  }
+  return 'No se pudo completar la operación. Inténtalo de nuevo.';
+}
+
 /// Resultado de un llamado OCR vía proxy.
 class AiOcrResult {
   const AiOcrResult({
@@ -148,7 +164,7 @@ class AiProxyService {
       return _parseOcrResult(result);
     } catch (e) {
       _log.w('AiProxyService.ocr error: $e');
-      return AiOcrResult(error: 'Error de conexión: $e');
+      return AiOcrResult(error: _friendlyError(e));
     }
   }
 
@@ -207,7 +223,7 @@ class AiProxyService {
       return _parseOcrResult(result);
     } catch (e) {
       _log.w('AiProxyService.parseText error: $e');
-      return AiOcrResult(error: 'Error de conexión: $e');
+      return AiOcrResult(error: _friendlyError(e));
     }
   }
 
@@ -258,7 +274,7 @@ class AiProxyService {
       return (items: items, error: null);
     } catch (e) {
       _log.w('AiProxyService.getInvestmentRecommendations error: $e');
-      return (items: <AiRecommendation>[], error: 'Error de conexión: $e');
+      return (items: <AiRecommendation>[], error: _friendlyError(e));
     }
   }
 

@@ -469,7 +469,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
               controller: _amountCtrl,
               decoration: InputDecoration(
                 labelText: s.amountLabel,
-                prefixText: '\$ ',
+                prefixText: '${_currencySymbol(_currency)} ',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -493,7 +493,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
               children: _kCurrencies
                   .map(
                     (c) => _CurrencyChip(
-                      label: c,
+                      label: _currencyChipLabel(c),
                       active: _currency == c,
                       onTap: () => setState(() => _currency = c),
                     ),
@@ -1089,6 +1089,21 @@ class _RateToggleChip extends StatelessWidget {
         ),
       );
 }
+
+// ── Etiquetas y símbolos de moneda ────────────────────────────────────────────
+
+/// Símbolo que se muestra como prefijo del monto según la moneda.
+/// Los bolívares (código interno 'VES') se muestran como "Bs".
+String _currencySymbol(String code) => switch (code) {
+      'VES' => 'Bs.',
+      'EUR' => '€',
+      'MXN' => 'MX\$',
+      'ARS' => 'AR\$',
+      _ => '\$', // USD y cualquier otra
+    };
+
+/// Etiqueta del selector de moneda; los bolívares se muestran como "Bs.".
+String _currencyChipLabel(String code) => code == 'VES' ? 'Bs.' : code;
 
 // ── Chip de moneda ────────────────────────────────────────────────────────────
 

@@ -1,0 +1,146 @@
+{
+  "name": "Alertas WhatsApp - Respuestas de clientes",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute",
+              "minute": 15
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "(from:hello@workana.com subject:\"you have a new message\") OR (from:donotreply@upwork.com (subject:message OR subject:\"sent you a message\")) OR (from:noreply@notifications.freelancer.com subject:message) newer_than:1d"
+        }
+      },
+      "id": "gmail-trigger-1",
+      "name": "Gmail - Nuevo mensaje de cliente",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        0
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZAR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el mensaje de WhatsApp a partir del correo de notificacion recibido.\n// IMPORTANTE: los patrones de Upwork y Freelancer.com son un punto de partida\n// (todavia no vimos un correo real de \"respuesta de cliente\" de esas dos\n// plataformas para confirmar el asunto exacto) -- si llega una alerta que no\n// corresponde a una respuesta real, hay que ajustar el query del nodo Gmail\n// y/o el filtro de aca abajo.\n\nconst out = [];\n\nfor (const item of $input.all()) {\n  const subject = (item.json.subject || '').toString();\n  const from = (item.json.from?.value?.[0]?.address || item.json.from || '').toString();\n  const snippet = (item.json.snippet || item.json.textPlain || '').toString();\n\n  let plataforma = 'Desconocida';\n  if (from.includes('workana.com')) plataforma = 'Workana';\n  else if (from.includes('upwork.com')) plataforma = 'Upwork';\n  else if (from.includes('freelancer.com')) plataforma = 'Freelancer';\n\n  // Filtro de seguridad: en Workana descartamos los correos promocionales\n  // (\"That project was yours...\", \"New IT & Programming projects...\") que\n  // NO son un mensaje real de un cliente.\n  if (plataforma === 'Workana' && !subject.toLowerCase().includes('new message')) {\n    continue;\n  }\n\n  const mensaje = `\\u{1F4E9} Respuesta de cliente (${plataforma})\\n${subject}\\n\\n${snippet.substring(0, 300)}\\n\\nRevisa tu correo o la plataforma para el mensaje completo.`;\n\n  out.push({\n    json: {\n      plataforma,\n      asunto: subject,\n      mensaje,\n    },\n  });\n}\n\nreturn out;"
+      },
+      "id": "code-preparar-1",
+      "name": "Preparar mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REEMPLAZAR - copiar la misma URL de Evolution API que usa el flujo 'Registrar propuesta o proyecto'",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "REEMPLAZAR - usar la misma credencial/API key de Evolution API ya configurada"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"584122293727\",\n  \"text\": {{ JSON.stringify($json.mensaje) }}\n}"
+      },
+      "id": "http-whatsapp-1",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "value": "public"
+        },
+        "table": {
+          "value": "notificaciones_whatsapp"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tipo": "respuesta_recibida",
+            "mensaje": "={{ $json.mensaje }}",
+            "enviado_at": "={{ $now.toISO() }}"
+          }
+        }
+      },
+      "id": "postgres-log-1",
+      "name": "Registrar en notificaciones_whatsapp",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Gmail - Nuevo mensaje de cliente": {
+      "main": [
+        [
+          {
+            "node": "Preparar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Registrar en notificaciones_whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

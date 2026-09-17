@@ -18,6 +18,7 @@ import '../features/agenda/presentation/pages/agenda_page.dart';
 import '../features/projections/presentation/pages/projection_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/subscription/presentation/pages/paywall_page.dart';
+import '../features/subscription/presentation/pages/pago_movil_page.dart';
 import '../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../shared/widgets/layout/adaptive_scaffold.dart';
 
@@ -55,6 +56,7 @@ abstract final class AppRoutes {
   static const projection = '/projection';
   static const settings = '/settings';
   static const paywall = '/paywall';
+  static const pagoMovil = '/pago-movil';
 }
 
 @riverpod
@@ -120,6 +122,11 @@ GoRouter appRouter(AppRouterRef ref) {
         path: AppRoutes.projection,
         pageBuilder: (_, __) =>
             const NoTransitionPage(child: ProjectionPage()),
+      ),
+      GoRoute(
+        path: AppRoutes.pagoMovil,
+        pageBuilder: (_, __) =>
+            const NoTransitionPage(child: PagoMovilPage()),
       ),
       ShellRoute(
         builder: (_, __, child) => AdaptiveScaffold(child: child),

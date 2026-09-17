@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -9,6 +10,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/services/exchange_rate_service.dart';
 import '../../../../core/services/iap_service.dart';
 import '../../../../core/services/subscription_service.dart';
+import '../../../../router/app_router.dart';
 import '../../providers/subscription_provider.dart';
 
 bool get _isMobile =>
@@ -56,15 +58,9 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
   }
 
   Future<void> _buyProduct(String productId) async {
+    // En escritorio/web el cobro se hace por Pago Móvil, fuera de Google Play.
     if (!_isMobile) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            S.of(context).paywallDesktopNotice,
-          ),
-          duration: const Duration(seconds: 5),
-        ),
-      );
+      context.push(AppRoutes.pagoMovil);
       return;
     }
 
@@ -174,33 +170,24 @@ class _PaywallPageState extends ConsumerState<PaywallPage> {
                 onTapMonthly: () {},
                 onTapAnnual: null,
               ),
-              // En desktop, indicar que debe suscribirse desde móvil.
+              // En escritorio/web: cobro por Pago Móvil (fuera de Google Play).
               if (!_isMobile) ...[
                 const SizedBox(height: AppSpacing.md),
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                    ),
+                FilledButton.icon(
+                  onPressed: () => context.push(AppRoutes.pagoMovil),
+                  icon: const Icon(Icons.smartphone),
+                  label: const Text('Pagar con Pago Móvil'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.phone_android,
-                          color: AppColors.primary, size: 20),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          S.of(context).paywallDesktopBanner,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.primary,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                const Text(
+                  'Paga desde Venezuela por Pago Móvil y activamos tu plan al '
+                  'confirmar el pago.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
               const SizedBox(height: AppSpacing.sm),

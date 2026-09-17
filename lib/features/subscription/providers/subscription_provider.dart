@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/services/notification_service.dart';
 import '../../../core/services/subscription_service.dart';
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
@@ -11,15 +12,36 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
 
   final _service = SubscriptionService.instance;
 
+  /// Id fijo para el recordatorio de vencimiento (así reprogramar lo reemplaza).
+  static const _kExpiryReminderId = 990001;
+
   Future<void> _init() async {
     final cached = await _service.loadFromCache();
     if (mounted) state = cached;
+    _scheduleExpiryReminder(cached);
   }
 
   /// Refresca desde Supabase. Llamar al hacer sign-in y en el botón "Restaurar".
   Future<void> refresh() async {
     final fresh = await _service.refresh();
     if (mounted) state = fresh;
+    _scheduleExpiryReminder(fresh);
+  }
+
+  /// Programa un aviso local 3 días antes del vencimiento del plan de pago.
+  /// Planes sin vencimiento (beta) o gratuitos no programan nada.
+  void _scheduleExpiryReminder(SubscriptionState s) {
+    final expires = s.expiresAt;
+    if (!s.isActive || expires == null) return;
+    final when = expires.subtract(const Duration(days: 3));
+    NotificationService.instance.scheduleReminder(
+      id: _kExpiryReminderId,
+      title: 'Tu plan vence pronto',
+      body: 'Tu plan ${s.planLabel} vence el '
+          '${expires.day}/${expires.month}/${expires.year}. '
+          'Renuévalo para conservar las funciones premium.',
+      when: when,
+    );
   }
 
   /// Limpia el estado al cerrar sesión.
