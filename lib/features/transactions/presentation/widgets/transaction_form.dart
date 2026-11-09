@@ -100,6 +100,10 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
   // Monedas soportadas por la aplicación.
   static const _kCurrencies = ['USD', 'VES', 'EUR', 'MXN', 'ARS'];
 
+  // Monto (en dólares equivalentes) a partir del cual se pide confirmación
+  // antes de guardar, para atrapar lecturas de OCR erróneas o errores de tecleo.
+  static const double _kHighAmountUsdWarn = 500;
+
   List<CategoriesTableData> _categories = [];
 
   @override
@@ -716,6 +720,14 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       usdEquiv = amount;
     }
 
+    // Red de seguridad: si el monto equivale a una cifra muy alta, pedir
+    // confirmación antes de guardar (atrapa lecturas de OCR erróneas o
+    // errores de tecleo, como las que inflaban los totales).
+    if (usdEquiv != null && usdEquiv > _kHighAmountUsdWarn) {
+      final confirmado = await _confirmHighAmount(usdEquiv);
+      if (!confirmado || !mounted) return;
+    }
+
     final ok = await ref.read(transactionNotifierProvider.notifier).save(
           existingId: widget.existing?.id,
           type: _type,
@@ -729,6 +741,38 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
           accountId: _accountId,
         );
     if (ok && mounted) Navigator.pop(context);
+  }
+
+  /// Confirmación para montos inusualmente altos. Devuelve true si el usuario
+  /// confirma que el monto es correcto.
+  Future<bool> _confirmHighAmount(double usdEquiv) async {
+    final sym = _currencySymbol(_currency);
+    final montoStr = _amountCtrl.text.trim();
+    final usdStr = usdEquiv.toStringAsFixed(2);
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: AppColors.warning, size: 36),
+        title: const Text('Confirma el monto'),
+        content: Text(
+          'Vas a guardar $sym $montoStr (equivale a unos \$ $usdStr). '
+          'Es un monto inusualmente alto; revisa que no haya un error de '
+          'lectura o de tecleo. ¿Es correcto?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Revisar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sí, guardar'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 }
 
